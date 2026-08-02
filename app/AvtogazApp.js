@@ -35,6 +35,10 @@ const EXPENSE_CATEGORIES = [
   "Ta'minotchiga to'lov", "Usta xizmat haqi", "Rahbarga chiqim",
   "Karta (Click/Payme) chiqim", "Ijara", "Ish haqi", "Kommunal", "Hujjat xarajati", "Boshqa xarajat"
 ];
+// Bular kassa pulini harakatlantiradi, lekin biznes daromadi/xarajati emas —
+// rahbarning shaxsiy kapital kiritishi/olishi va shaxsiy qarzlar. Shuning uchun
+// "Rahbar oylik hisoboti"dagi SOF FOYDA hisobidan chiqarib tashlanadi.
+const NON_OPERATING_CATEGORIES = ["Rahbardan kirim", "Rahbarga chiqim", "Shaxsiy qarz berildi", "Shaxsiy qarz qaytdi"];
 
 const emptyData = () => ({
   settings: {
@@ -4268,7 +4272,8 @@ function OwnerMonthlyReport({ data, rate }) {
   const monthCF = cf.filter((c) => (c.date || "").startsWith(monthFilter));
 
   const monthIncome = monthCF
-    .filter((c) => c.type === "kirim" && c.paymentType !== "Karta (Click/Payme)" && c.paymentType !== "Nasiya (qarzga)")
+    .filter((c) => c.type === "kirim" && c.paymentType !== "Karta (Click/Payme)" && c.paymentType !== "Nasiya (qarzga)"
+      && !NON_OPERATING_CATEGORIES.includes(c.category))
     .reduce((s, c) => s + num(c.amountSum), 0);
 
   const supplierPay = monthCF.filter((c) => c.category === "Ta'minotchiga to'lov").reduce((s, c) => s + num(c.amountSum), 0);
@@ -4276,7 +4281,8 @@ function OwnerMonthlyReport({ data, rate }) {
   const docFeePay = monthCF.filter((c) => c.category === "Hujjat xarajati").reduce((s, c) => s + num(c.amountSum), 0);
   const employeePay = monthCF.filter((c) => c.category === "Ish haqi").reduce((s, c) => s + num(c.amountSum), 0);
   const otherExpense = monthCF
-    .filter((c) => c.type === "chiqim" && !["Ta'minotchiga to'lov", "Usta xizmat haqi", "Hujjat xarajati", "Ish haqi"].includes(c.category))
+    .filter((c) => c.type === "chiqim" && !["Ta'minotchiga to'lov", "Usta xizmat haqi", "Hujjat xarajati", "Ish haqi"].includes(c.category)
+      && !NON_OPERATING_CATEGORIES.includes(c.category))
     .reduce((s, c) => s + num(c.amountSum), 0);
 
   const totalExpense = supplierPay + ustaPay + docFeePay + employeePay + otherExpense;
@@ -4325,6 +4331,7 @@ function OwnerMonthlyReport({ data, rate }) {
       </div>
       <p style={{ fontSize: 11, color: T.muted, marginTop: 14, textAlign: "center" }}>
         USD ekvivalenti: {fmtUsd(netProfit / rate)} · Click/Payme va Nasiya bu hisobga kirmaydi (alohida kuzatiladi)
+        <br />Rahbar shaxsiy kiritgan/olgan pul va shaxsiy qarzlar bu hisobotga kiritilmaydi — faqat biznes foydasi
       </p>
     </Card>
   );
