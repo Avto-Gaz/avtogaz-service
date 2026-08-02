@@ -66,6 +66,11 @@ const toSum = (a, cur, rate) => (cur === "USD" ? num(a) * rate : num(a));
 const toUsd = (a, cur, rate) => (cur === "USD" ? num(a) : rate ? num(a) / rate : 0);
 
 function cardPartsCost(card) { return (card.parts || []).reduce((s, p) => s + num(p.lineTotal), 0); }
+// Servis/Moy bo'limi'da lineTotal sotish narxida hisoblanadi (mijozga shuncha yoziladi),
+// shuning uchun haqiqiy tan narxni alohida hisoblaymiz — profit shu yerdan chiqishi kerak.
+function cardPartsRealCost(card) {
+  return (card.parts || []).reduce((s, p) => s + num(p.qty) * num(p.costUnit ?? p.unitCost), 0);
+}
 function cardUstaFeeSum(card) { return (card.ustaFeeEntries || []).reduce((s, e) => s + num(e.amount), 0); }
 function cardStatus(card) { return card.status || "yakunlangan"; }
 
@@ -179,7 +184,7 @@ function doExportExcel(data, rate) {
     "Sana": c.date, "Holati": cardStatus(c) === "ochiq" ? "Ochiq" : "Yakunlangan",
     "Davlat raqami": c.plate, "Telefon": c.phone, "Mashina": c.carModel,
     "Xizmat turi": c.serviceType, "Usta": c.usta,
-    "Tan narx": cardPartsCost(c), "Usta haqi": cardUstaFeeSum(c),
+    "Tan narx": cardPartsRealCost(c), "Usta haqi": cardUstaFeeSum(c),
     "Hujjat": c.docFee || 0, "Yakuniy": c.finalTotal || 0, "Foyda": c.profitSum || 0,
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cards), "Xizmat kartalari");
@@ -1834,15 +1839,26 @@ function ServicesTab({ data, patch, rate }) {
         card.profitSum = num(card.profitSum) + num(fin.ustaFee);
         card.contractedUstaBonus = num(fin.ustaFee); // hisobot uchun — qancha "qaytdi"
       }
+      // Mijozdan B/U tovar qabul qilingan bo'lsa (chegirma evaziga) — bu tovar
+      // hech qayerda ko'rinmay qolmasligi uchun skladga "B/U tovarlar" sifatida kiritamiz.
+      (fin.buItems || []).forEach((b) => {
+        const price = num(b.price);
+        d.products.push({
+          id: uid(), name: b.name, unit: "dona", category: "B/U tovarlar",
+          costSum: price, priceSum: price, priceUsd: 0, qty: 1,
+        });
+      });
       return d;
     });
     setWorkCard(null);
   }
   async function deleteCard(id) {
-    if (!(await askConfirm("Karta o'chirilsinmi?\nBu amalni ortga qaytarib bo'lmaydi."))) return;
+    if (!(await askConfirm("Karta o'chirilsinmi?\nIchidagi mahsulotlar skladga qaytariladi.\nBu amalni ortga qaytarib bo'lmaydi."))) return;
     patch((d) => {
       const card = d.serviceCards.find((c) => c.id === id);
-      if (card && cardStatus(card) === "ochiq") {
+      if (card) {
+        // Karta ochiq bo'lsimi, yakunlangan bo'lsimi — mahsulot skladdan
+        // chiqarilgan bo'ladi, shuning uchun har doim qaytarib beramiz.
         (card.parts || []).forEach((p) => {
           const prod = d.products.find((x) => x.id === p.productId);
           if (prod) prod.qty = num(prod.qty) + p.qty;
@@ -1992,7 +2008,7 @@ function ServicesTab({ data, patch, rate }) {
             { k: "carModel", h: "Mashina" },
             { k: "serviceType", h: "Xizmat", r: (r) => <Badge color={SERVICE_COLORS[r.serviceType] || T.blue}>{r.serviceType}</Badge> },
             { k: "usta", h: "Usta", r: (r) => r.usta || "—" },
-            { k: "partsCost", h: "Tan narx", r: (r) => <span style={{ color: T.muted2 }}>{fmtSum(cardPartsCost(r))}</span> },
+            { k: "partsCost", h: "Tan narx", r: (r) => <span style={{ color: T.muted2 }}>{fmtSum(cardPartsRealCost(r))}</span> },
             { k: "ustaFee", h: "Usta haqi", r: (r) => <span style={{ color: T.gold }}>{fmtSum(cardUstaFeeSum(r))}</span> },
             { k: "finalTotal", h: "Yakuniy", r: (r) => <span className="mo" style={{ fontWeight: 700 }}>{fmtSum(r.finalTotal)}</span> },
             { k: "profitSum", h: "Foyda", r: (r) => <span className="mo" style={{ fontWeight: 700, color: num(r.profitSum) >= 0 ? T.teal : T.red }}>{fmtSum(r.profitSum)}</span> },
@@ -2104,7 +2120,7 @@ function EditFinishedCardModal({ card, products, onClose, onSave }) {
   });
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target?.value ?? e }));
 
-  const partsCost = cardPartsCost(card);
+  const partsCost = cardPartsRealCost(card);
   const profitSum = num(f.finalTotal) - partsCost - num(f.ustaFee) - num(f.docFee);
 
   return (
@@ -2174,6 +2190,7 @@ function CardWorkspace({ card, products, onClose, onAddPart, onRemovePart, onAdd
   const parts = card.parts || [];
   const fees = card.ustaFeeEntries || [];
   const partsCost = cardPartsCost(card);
+  const realPartsCost = cardPartsRealCost(card);
   const feeSum = cardUstaFeeSum(card);
 
   // Servis / Moy → sotish narxi; Ustanovka → tan narx
@@ -2199,7 +2216,7 @@ function CardWorkspace({ card, products, onClose, onAddPart, onRemovePart, onAdd
   }
 
   if (finalizing)
-    return <FinalizeModal card={card} partsCost={partsCost} feeSum={feeSum}
+    return <FinalizeModal card={card} partsCost={partsCost} realPartsCost={realPartsCost} feeSum={feeSum}
       onBack={() => setFinalizing(false)} onClose={onClose} onSave={onFinalize} />;
 
   return (
@@ -2289,7 +2306,7 @@ function CardWorkspace({ card, products, onClose, onAddPart, onRemovePart, onAdd
   );
 }
 
-function FinalizeModal({ card, partsCost, feeSum, onBack, onClose, onSave }) {
+function FinalizeModal({ card, partsCost, realPartsCost, feeSum, onBack, onClose, onSave }) {
   const [agreedSum, setAgreedSum] = useState("");
   const [percent, setPercent] = useState(20);
   const [discount, setDiscount] = useState(0);
@@ -2320,7 +2337,11 @@ function FinalizeModal({ card, partsCost, feeSum, onBack, onClose, onSave }) {
   }
 
   finalTotal = Math.max(0, finalTotal - buTotal);
-  const profitSum = finalTotal - effectiveParts - uf - doc;
+  // Detailing uchun material xarajati qo'lda kiritiladi — bu allaqachon tan narx.
+  // Boshqa turlarda (ayniqsa Servis/Moy bo'limi) mijozga sotish narxida yozilgan
+  // bo'lishi mumkin, shuning uchun profit har doim haqiqiy tan narxdan hisoblanadi.
+  const costForProfit = card.serviceType === "Detailing" ? effectiveParts : realPartsCost;
+  const profitSum = finalTotal - costForProfit - uf - doc;
 
   return (
     <Modal title={`Yakunlash — ${card.plate}`} onClose={onClose} wide>
@@ -2410,7 +2431,8 @@ function FinalizeModal({ card, partsCost, feeSum, onBack, onClose, onSave }) {
       {/* SUMMARY */}
       <div style={{ background: T.s2, borderRadius: 10, padding: "14px 16px", marginTop: 16 }}>
         {[
-          ["Mahsulot", effectiveParts, T.muted2],
+          ["Mahsulot (mijozga)", effectiveParts, T.muted2],
+          costForProfit !== effectiveParts && ["Mahsulot (tan narx)", costForProfit, T.muted],
           ["Usta haqi", uf, T.gold],
           ["Hujjat xarajati", doc, T.red],
           buTotal > 0 && ["B/U tovar chegirma", -buTotal, T.gold],
