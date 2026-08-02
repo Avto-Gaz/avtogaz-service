@@ -1811,6 +1811,7 @@ function ServicesTab({ data, patch, rate }) {
           id: uid(), date: todayISO(), type: "kirim", category: "Xizmat to'lovi",
           currency: "SUM", amount: fin.finalTotal, amountSum: fin.finalTotal,
           amountUsd: fin.finalTotal / rate, paymentType: card.paymentType,
+          cardId: card.id,
           note: `${card.serviceType} — ${card.carModel || ""} (${card.plate})`,
         });
       }
@@ -1826,6 +1827,7 @@ function ServicesTab({ data, patch, rate }) {
         d.cashflow.unshift({
           id: uid(), date: todayISO(), type: "chiqim", category: "Hujjat xarajati",
           currency: "SUM", amount: fin.docFee, amountSum: fin.docFee, amountUsd: fin.docFee / rate,
+          cardId: card.id,
           note: `${card.plate} — hujjat xarajati`,
         });
       }
@@ -1879,16 +1881,18 @@ function ServicesTab({ data, patch, rate }) {
       const card = d.serviceCards.find((c) => c.id === cardId);
       if (!card) return d;
 
-      // Eski yakunlash yozuvlarini (kassa, usta hisobi, nasiya) bekor qilamiz —
+      // Eski yakunlash yozuvlarini bekor qilamiz — usta hisobi va nasiya uchun
       // faqat hali to'lanmagan (paid=false) izlarni, chunki to'langanini o'zgartirish
-      // moliyaviy tarixni buzadi.
+      // moliyaviy tarixni buzadi. Usta ustidan ALLAQACHON TO'LANGAN bo'lsa, buni
+      // qayta "to'lanmagan" qilib yozib qo'ymaymiz — aks holda ustaga ikki marta
+      // haq to'lash xavfi tug'iladi.
+      const ustaAlreadyPaid = d.ustaLedger.some((x) => x.cardId === cardId && x.paid);
       d.ustaLedger = d.ustaLedger.filter((x) => !(x.cardId === cardId && !x.paid));
       d.nasiyaDebts = (d.nasiyaDebts || []).filter((n) => !(n.cardId === cardId && !n.paid));
-      // Eski kassa yozuvini ham (agar hali "tuzatilmagan" bo'lsa) belgilab qo'yamiz —
-      // xavfsizlik uchun o'chirmaymiz, faqat izoh bilan bekor qilingan deb belgilaymiz.
-      d.cashflow.forEach((c) => {
-        if (c.editedCardId === cardId) c.category = c.category + " (bekor qilingan)";
-      });
+      // Eski "Xizmat to'lovi" / "Hujjat xarajati" kassa yozuvlarini olib tashlaymiz —
+      // ular shu kartaning eski (endi noto'g'ri) summasini aks ettiradi, shuning
+      // uchun qoldirilsa mijoz to'lovi ikki marta hisoblanib qoladi.
+      d.cashflow = d.cashflow.filter((c) => c.cardId !== cardId);
 
       Object.assign(card, updated);
 
@@ -1898,11 +1902,11 @@ function ServicesTab({ data, patch, rate }) {
 
       if (num(updated.finalTotal) > 0 && !isNasiya) {
         d.cashflow.unshift({
-          id: uid(), date: card.date || todayISO(), type: "kirim", category: "Xizmat to'lovi (tahrirlangan)",
+          id: uid(), date: card.date || todayISO(), type: "kirim", category: "Xizmat to'lovi",
           currency: "SUM", amount: updated.finalTotal, amountSum: updated.finalTotal,
           amountUsd: updated.finalTotal / rate, paymentType: card.paymentType,
-          editedCardId: cardId,
-          note: `${card.serviceType} — ${card.carModel || ""} (${card.plate}) — TAHRIRLANGAN`,
+          cardId: card.id,
+          note: `${card.serviceType} — ${card.carModel || ""} (${card.plate}) — tahrirlangan`,
         });
       }
       if (num(updated.finalTotal) > 0 && isNasiya) {
@@ -1913,7 +1917,15 @@ function ServicesTab({ data, patch, rate }) {
           serviceType: card.serviceType, amountSum: updated.finalTotal, paidAmount: 0, paid: false,
         });
       }
-      if (num(updated.ustaFee) > 0 && !isContracted) {
+      if (num(updated.docFee) > 0) {
+        d.cashflow.unshift({
+          id: uid(), date: card.date || todayISO(), type: "chiqim", category: "Hujjat xarajati",
+          currency: "SUM", amount: updated.docFee, amountSum: updated.docFee, amountUsd: updated.docFee / rate,
+          cardId: card.id,
+          note: `${card.plate} — hujjat xarajati — tahrirlangan`,
+        });
+      }
+      if (num(updated.ustaFee) > 0 && !isContracted && !ustaAlreadyPaid) {
         d.ustaLedger.unshift({
           id: uid(), date: card.date || todayISO(), usta: card.usta || "Noma'lum",
           cardId: card.id, amountSum: updated.ustaFee, paid: false,
