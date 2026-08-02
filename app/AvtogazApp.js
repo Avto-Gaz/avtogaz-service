@@ -214,15 +214,19 @@ function doExportExcel(data, rate) {
    DESIGN TOKENS
 ═══════════════════════════════════════════════════ */
 const T = {
-  bg: "#F4F6F9", s1: "#FFFFFF", s2: "#FAFBFC", s3: "#F0F3F7", s4: "#E9EDF3",
-  border: "#E1E6ED", border2: "#D3DAE4",
-  text: "#1C2733", muted: "#8593A3", muted2: "#5B6B7E",
+  bg: "#EEF1F7", s1: "#FFFFFF", s2: "#FBFCFE", s3: "#F1F4F9", s4: "#E9EDF4",
+  border: "#E4E9F1", border2: "#D6DEEA",
+  text: "#141C29", muted: "#8593A3", muted2: "#54637A",
+  navy: "#101828", navy2: "#182236",
   flame: "#E8541F", flameD: "#E8541F12",
   gold: "#D68A00", goldD: "#D68A0012",
   teal: "#0F9D82", tealD: "#0F9D8212",
   red: "#DC3545", redD: "#DC354512",
   blue: "#1F6FEB", blueD: "#1F6FEB12",
   purple: "#6C4CD8", purpleD: "#6C4CD812",
+  shadowSm: "0 1px 2px rgba(16,24,40,.06)",
+  shadowMd: "0 6px 20px -4px rgba(16,24,40,.10), 0 2px 6px -2px rgba(16,24,40,.06)",
+  shadowLg: "0 20px 50px -12px rgba(16,24,40,.20)",
 };
 
 const SERVICE_COLORS = {
@@ -235,25 +239,61 @@ function GlobalStyles() {
     <style>{`
       @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700;800&family=Barlow+Condensed:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
       *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-      body{background:${T.bg};color:${T.text};font-family:'Barlow',sans-serif;font-size:14px;line-height:1.5}
+      html{background:${T.bg}}
+      body{
+        color:${T.text};font-family:'Barlow',sans-serif;font-size:14px;line-height:1.5;
+        min-height:100vh;
+        background-color:${T.bg};
+        background-image:
+          radial-gradient(1100px 560px at 6% -12%, ${T.flame}17, transparent 60%),
+          radial-gradient(900px 620px at 104% -6%, ${T.teal}14, transparent 58%),
+          radial-gradient(760px 680px at 50% 116%, ${T.purple}10, transparent 62%),
+          radial-gradient(#B9C4D6 1.1px, transparent 1.1px),
+          linear-gradient(180deg, #F7F9FC 0%, #EDF0F6 100%);
+        background-repeat:no-repeat,no-repeat,no-repeat,repeat,no-repeat;
+        background-size:100% 640px,100% 640px,100% 900px,22px 22px,100% 100%;
+        background-position:top left,top right,bottom center,0 0,top;
+        background-attachment:scroll,scroll,scroll,fixed,fixed;
+      }
       .bc{font-family:'Barlow Condensed',sans-serif}
       .mo{font-family:'JetBrains Mono',monospace}
       button,input,select,textarea{font-family:'Barlow',sans-serif;font-size:14px}
-      input:focus,select:focus,textarea:focus{outline:none;border-color:${T.flame}!important;box-shadow:0 0 0 2px ${T.flame}28}
-      ::-webkit-scrollbar{width:5px;height:5px}
-      ::-webkit-scrollbar-track{background:${T.bg}}
+      input:focus,select:focus,textarea:focus{outline:none;border-color:${T.flame}!important;box-shadow:0 0 0 3px ${T.flame}20}
+      ::-webkit-scrollbar{width:6px;height:6px}
+      ::-webkit-scrollbar-track{background:transparent}
       ::-webkit-scrollbar-thumb{background:${T.border2};border-radius:3px}
+      ::-webkit-scrollbar-thumb:hover{background:${T.muted}}
+      .rh{transition:background .12s ease}
       .rh:hover{background:${T.s3}!important}
-      .ch:hover{border-color:${T.flame}!important;transform:translateY(-2px);box-shadow:0 4px 14px rgba(30,41,59,.08)}
-      .card-shadow{box-shadow:0 1px 2px rgba(20,30,45,.04), 0 1px 1px rgba(20,30,45,.03)}
+      .ch{transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease}
+      .ch:hover{border-color:${T.flame}!important;transform:translateY(-3px);box-shadow:${T.shadowMd}}
+      .card-shadow{box-shadow:${T.shadowSm}, 0 0 0 1px rgba(16,24,40,.02)}
+      .panel{transition:box-shadow .18s ease, transform .18s ease}
+      .lift-hover{transition:transform .16s ease, box-shadow .16s ease}
+      .lift-hover:hover{transform:translateY(-3px);box-shadow:${T.shadowMd}}
+      .btn-lift{transition:transform .12s ease, box-shadow .12s ease, filter .12s ease, opacity .12s ease}
+      .btn-lift:hover{transform:translateY(-1px);filter:brightness(1.04)}
+      .btn-lift:active{transform:translateY(0);filter:brightness(.97)}
+      .tab-btn{transition:background .14s ease, color .14s ease, box-shadow .14s ease}
+      .tab-btn:hover{background:${T.s3}}
+      .pin-key{transition:transform .1s ease, box-shadow .1s ease, border-color .1s ease}
+      .pin-key:hover{transform:translateY(-1px);box-shadow:${T.shadowMd};border-color:${T.border2}}
+      .pin-key:active{transform:translateY(0)}
       @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
       @keyframes spin{to{transform:rotate(360deg)}}
       @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+      @keyframes glow{0%,100%{opacity:.55}50%{opacity:1}}
       .fi{animation:fadeUp .2s ease both}
       .spin{animation:spin 1s linear infinite}
       .pulse{animation:pulse 1.5s ease infinite}
       select{appearance:none}
-      @media(max-width:640px){.hide-sm{display:none!important}}
+      .grid-2b{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}
+      .grid-3b{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+      .grid-4b{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+      @media(max-width:860px){.grid-2b,.grid-3b{grid-template-columns:1fr}}
+      @media(max-width:640px){.hide-sm{display:none!important}.grid-4b{grid-template-columns:repeat(2,1fr)}}
+      @media(max-width:480px){.hide-xs{display:none!important}}
+      @media(max-width:420px){.grid-4b{grid-template-columns:1fr}}
       .menu-item:hover{background:${T.s3}!important}
     `}</style>
   );
@@ -263,9 +303,9 @@ function GlobalStyles() {
    UI PRIMITIVES
 ═══════════════════════════════════════════════════ */
 const iSt = {
-  width: "100%", padding: "9px 12px", borderRadius: 8,
+  width: "100%", padding: "9.5px 12px", borderRadius: 9,
   border: `1px solid ${T.border2}`, background: T.s3,
-  color: T.text, fontSize: 13,
+  color: T.text, fontSize: 13, transition: "border-color .12s ease, box-shadow .12s ease",
 };
 
 function F({ label, children, col }) {
@@ -313,26 +353,27 @@ function CurrencyToggle({ value, onChange }) {
 function Modal({ title, onClose, children, wide, xwide }) {
   return (
     <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 200, background: "rgba(28,39,51,.45)",
+      position: "fixed", inset: 0, zIndex: 200,
+      background: "rgba(10,16,28,.55)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)",
       display: "flex", alignItems: "flex-start", justifyContent: "center",
       padding: "20px 14px", overflowY: "auto",
     }}>
       <div onClick={(e) => e.stopPropagation()} className="fi" style={{
         width: "100%", maxWidth: xwide ? 880 : wide ? 660 : 480,
-        background: T.s1, border: `1px solid ${T.border2}`,
-        borderRadius: 14, overflow: "hidden", marginBottom: 20,
-        boxShadow: "0 20px 60px rgba(20,30,45,.25)",
+        background: T.s1, border: `1px solid ${T.border}`,
+        borderRadius: 16, overflow: "hidden", marginBottom: 20,
+        boxShadow: T.shadowLg,
       }}>
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "15px 22px", borderBottom: `1px solid ${T.border}`,
-          position: "sticky", top: 0, background: T.s1, zIndex: 10,
+          padding: "16px 22px", borderBottom: `1px solid ${T.border}`,
+          position: "sticky", top: 0, background: `linear-gradient(180deg,${T.s1},${T.s2})`, zIndex: 10,
         }}>
-          <span className="bc" style={{ fontSize: 16, fontWeight: 700 }}>{title}</span>
+          <span className="bc" style={{ fontSize: 16.5, fontWeight: 700, letterSpacing: ".01em" }}>{title}</span>
           <button onClick={onClose} style={{
-            background: "none", border: "none", cursor: "pointer",
-            color: T.muted, padding: 4, display: "flex",
-          }}><X size={17} /></button>
+            background: T.s3, border: `1px solid ${T.border2}`, borderRadius: 8, cursor: "pointer",
+            color: T.muted2, padding: 5, display: "flex",
+          }}><X size={16} /></button>
         </div>
         <div style={{ padding: "20px 22px" }}>{children}</div>
       </div>
@@ -342,12 +383,13 @@ function Modal({ title, onClose, children, wide, xwide }) {
 
 function SaveBtn({ onClick, disabled, children = "Saqlash", color }) {
   return (
-    <button onClick={onClick} disabled={disabled} style={{
-      width: "100%", marginTop: 18, padding: "12px", borderRadius: 9, border: "none",
+    <button onClick={onClick} disabled={disabled} className={disabled ? "" : "btn-lift"} style={{
+      width: "100%", marginTop: 18, padding: "12.5px", borderRadius: 10, border: "none",
       background: disabled ? T.s3 : `linear-gradient(135deg,${color || T.flame},${color ? color + "99" : "#D84315"})`,
       color: disabled ? T.muted : "#fff", fontWeight: 700, fontSize: 13.5,
       cursor: disabled ? "not-allowed" : "pointer",
       display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+      boxShadow: disabled ? "none" : `0 8px 20px -6px ${color || T.flame}88`,
     }}>{children}</button>
   );
 }
@@ -379,16 +421,16 @@ function ConfirmHost() {
 function Btn({ onClick, children, variant = "primary", size = "md", style: s }) {
   const sizes = { sm: "6px 11px", md: "9px 16px", lg: "12px 22px" };
   const variants = {
-    primary: { background: `linear-gradient(135deg,${T.flame},#D84315)`, color: "#fff", border: "none" },
-    ghost: { background: T.s2, color: T.muted2, border: `1px solid ${T.border2}` },
-    teal: { background: T.tealD, color: T.teal, border: `1px solid ${T.teal}40` },
-    red: { background: T.redD, color: T.red, border: `1px solid ${T.red}40` },
-    gold: { background: T.goldD, color: T.gold, border: `1px solid ${T.gold}40` },
+    primary: { background: `linear-gradient(135deg,${T.flame},#D84315)`, color: "#fff", border: "none", boxShadow: `0 6px 16px -6px ${T.flame}90` },
+    ghost: { background: T.s1, color: T.muted2, border: `1px solid ${T.border2}`, boxShadow: T.shadowSm },
+    teal: { background: T.tealD, color: T.teal, border: `1px solid ${T.teal}35` },
+    red: { background: T.redD, color: T.red, border: `1px solid ${T.red}35` },
+    gold: { background: T.goldD, color: T.gold, border: `1px solid ${T.gold}35` },
   };
   return (
-    <button onClick={onClick} style={{
+    <button onClick={onClick} className="btn-lift" style={{
       display: "inline-flex", alignItems: "center", gap: 6,
-      padding: sizes[size], borderRadius: 8, cursor: "pointer",
+      padding: sizes[size], borderRadius: 9, cursor: "pointer",
       fontSize: size === "sm" ? 11.5 : 13, fontWeight: 600,
       ...variants[variant], ...s,
     }}>{children}</button>
@@ -399,8 +441,9 @@ function Badge({ children, color }) {
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 4,
-      padding: "2px 9px", borderRadius: 20, fontSize: 11, fontWeight: 700,
-      background: color + "1A", color, letterSpacing: ".02em",
+      padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+      background: color + "16", color, letterSpacing: ".02em",
+      border: `1px solid ${color}30`,
     }}>{children}</span>
   );
 }
@@ -719,18 +762,34 @@ const menuItemSt = {
   fontSize: 12.5, color: "inherit", textAlign: "left", fontFamily: "inherit",
 };
 
+function Empty({ Icon, text, sub }) {
+  return (
+    <div style={{ padding: "42px 20px", textAlign: "center" }}>
+      <div style={{
+        width: 46, height: 46, borderRadius: 13, margin: "0 auto 12px",
+        background: T.s3, border: `1px solid ${T.border}`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <Icon size={20} color={T.muted} />
+      </div>
+      <p style={{ color: T.muted2, fontSize: 13, fontWeight: 600 }}>{text}</p>
+      {sub && <p style={{ color: T.muted, fontSize: 11.5, marginTop: 4 }}>{sub}</p>}
+    </div>
+  );
+}
+
 function Tbl({ cols, rows, empty }) {
   if (!rows.length)
-    return <div style={{ padding: "38px 20px", textAlign: "center", color: T.muted, fontSize: 13 }}>{empty || "Ma'lumot yo'q"}</div>;
+    return <Empty Icon={Package} text={empty || "Ma'lumot yo'q"} />;
   return (
     <div style={{ overflowX: "auto" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
         <thead>
-          <tr style={{ borderBottom: `1px solid ${T.border}` }}>
+          <tr style={{ borderBottom: `1px solid ${T.border}`, background: T.s2 }}>
             {cols.map((c) => (
               <th key={c.k} style={{
-                padding: "9px 10px", textAlign: "left", color: T.muted,
-                fontWeight: 600, fontSize: 10, textTransform: "uppercase",
+                padding: "10px 10px", textAlign: "left", color: T.muted2,
+                fontWeight: 700, fontSize: 10, textTransform: "uppercase",
                 letterSpacing: ".06em", whiteSpace: "nowrap",
               }}>{c.h}</th>
             ))}
@@ -738,7 +797,10 @@ function Tbl({ cols, rows, empty }) {
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className="rh" style={{ borderBottom: `1px solid ${T.border}25` }}>
+            <tr key={i} className="rh" style={{
+              borderBottom: `1px solid ${T.border}25`,
+              background: i % 2 ? "transparent" : `${T.s2}90`,
+            }}>
               {cols.map((c) => (
                 <td key={c.k} style={{ padding: "10px 10px", color: T.text, whiteSpace: "nowrap" }}>
                   {c.r ? c.r(row) : row[c.k]}
@@ -754,41 +816,87 @@ function Tbl({ cols, rows, empty }) {
 
 function Stat({ label, value, sub, color, Icon }) {
   return (
-    <div className="card-shadow" style={{
-      background: T.s1, border: `1px solid ${T.border}`, borderRadius: 12,
-      padding: "15px 17px", borderTop: `2px solid ${color}`,
+    <div className="card-shadow lift-hover" style={{
+      position: "relative", background: T.s1, border: `1px solid ${T.border}`, borderRadius: 14,
+      padding: "16px 17px", overflow: "hidden",
     }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+      <div style={{
+        position: "absolute", top: 0, left: 0, right: 0, height: 3,
+        background: `linear-gradient(90deg,${color},${color}55)`,
+      }} />
+      <div style={{
+        position: "absolute", top: -30, right: -30, width: 90, height: 90, borderRadius: "50%",
+        background: `radial-gradient(circle,${color}14,transparent 70%)`,
+      }} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, position: "relative" }}>
         <span style={{
           fontSize: 10, fontWeight: 700, letterSpacing: ".08em",
           textTransform: "uppercase", color: T.muted,
         }}>{label}</span>
-        {Icon && <div style={{ background: color + "1A", borderRadius: 7, padding: 5, display: "flex" }}>
+        {Icon && <div style={{
+          background: `linear-gradient(135deg,${color}22,${color}0d)`, border: `1px solid ${color}30`,
+          borderRadius: 8, padding: 6, display: "flex",
+        }}>
           <Icon size={13} color={color} />
         </div>}
       </div>
-      <div className="mo bc" style={{ fontSize: 19, fontWeight: 700, color, lineHeight: 1.15 }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: T.muted, marginTop: 4 }}>{sub}</div>}
+      <div className="mo bc" style={{ fontSize: 20, fontWeight: 700, color, lineHeight: 1.15, position: "relative" }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: T.muted, marginTop: 5, position: "relative" }}>{sub}</div>}
     </div>
   );
 }
 
-function Card({ title, children, action, pad = true }) {
+function Card({ title, children, action, pad = true, Icon, color = T.flame }) {
   return (
     <div className="card-shadow" style={{
       background: T.s1, border: `1px solid ${T.border}`,
-      borderRadius: 12, overflow: "hidden",
+      borderRadius: 14, overflow: "hidden",
     }}>
       {title && (
         <div style={{
           padding: "13px 18px", borderBottom: `1px solid ${T.border}`,
           display: "flex", justifyContent: "space-between", alignItems: "center",
+          background: `linear-gradient(180deg,${T.s2},${T.s1})`,
         }}>
-          <span className="bc" style={{ fontSize: 14, fontWeight: 700 }}>{title}</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
+            {Icon && (
+              <span style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: 24, height: 24, borderRadius: 7,
+                background: `linear-gradient(135deg,${color}22,${color}0d)`, border: `1px solid ${color}30`,
+              }}><Icon size={12.5} color={color} /></span>
+            )}
+            <span className="bc" style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: ".01em" }}>{title}</span>
+          </span>
           {action}
         </div>
       )}
       <div style={{ padding: pad ? "16px 18px" : 0 }}>{children}</div>
+    </div>
+  );
+}
+
+function PageHeader({ Icon, title, sub, color = T.flame, action }) {
+  return (
+    <div style={{
+      display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+      marginBottom: 20, flexWrap: "wrap", gap: 12,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
+        {Icon && (
+          <div style={{
+            width: 42, height: 42, borderRadius: 12, flexShrink: 0,
+            background: `linear-gradient(135deg,${color}20,${color}08)`,
+            border: `1px solid ${color}30`, boxShadow: `0 6px 16px -8px ${color}70`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}><Icon size={19} color={color} /></div>
+        )}
+        <div>
+          <h2 className="bc" style={{ fontSize: 22, fontWeight: 800, letterSpacing: ".01em" }}>{title}</h2>
+          {sub && <p style={{ color: T.muted, fontSize: 12, marginTop: 3 }}>{sub}</p>}
+        </div>
+      </div>
+      {action}
     </div>
   );
 }
@@ -814,59 +922,71 @@ function LoginScreen({ pins, onSuccess }) {
 
   return (
     <div style={{
-      minHeight: "100vh", background: T.bg, display: "flex",
+      minHeight: "100vh", display: "flex",
       alignItems: "center", justifyContent: "center", padding: 20,
+      position: "relative", overflow: "hidden",
     }}>
       <GlobalStyles />
-      <div style={{ width: "100%", maxWidth: 300, textAlign: "center" }}>
+      <div style={{
+        position: "absolute", inset: 0, pointerEvents: "none",
+        background: `radial-gradient(700px 420px at 50% -10%, ${T.flame}1c, transparent 60%)`,
+      }} />
+      <div className="fi card-shadow" style={{
+        position: "relative", width: "100%", maxWidth: 320, textAlign: "center",
+        background: `linear-gradient(180deg,${T.s1},${T.s2})`,
+        border: `1px solid ${T.border}`, borderRadius: 22,
+        padding: "36px 28px 30px", boxShadow: T.shadowLg,
+      }}>
         <div style={{
-          width: 58, height: 58, borderRadius: 16, margin: "0 auto 16px",
+          width: 60, height: 60, borderRadius: 17, margin: "0 auto 18px",
           background: `linear-gradient(135deg,${T.flame},#BF360C)`,
           display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: `0 10px 24px -8px ${T.flame}90`,
         }}>
           <Zap size={28} color="#fff" />
         </div>
-        <h1 className="bc" style={{ fontSize: 20, fontWeight: 800, letterSpacing: ".04em", marginBottom: 4 }}>
+        <h1 className="bc" style={{ fontSize: 21, fontWeight: 800, letterSpacing: ".04em", marginBottom: 5 }}>
           AVTOGAZ SERVICE
         </h1>
         <p style={{
-          fontSize: 12, color: T.muted, marginBottom: 28,
+          fontSize: 12, color: T.muted, marginBottom: 26,
           display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
         }}>
           <Lock size={12} /> PIN-kodni kiriting
         </p>
 
-        <div className={error ? "pulse" : ""} style={{ display: "flex", justifyContent: "center", gap: 12, marginBottom: 28 }}>
+        <div className={error ? "pulse" : ""} style={{ display: "flex", justifyContent: "center", gap: 12, marginBottom: 26 }}>
           {[0, 1, 2, 3].map((i) => (
             <span key={i} style={{
               width: 14, height: 14, borderRadius: "50%",
               border: `2px solid ${error ? T.red : digits.length > i ? T.flame : T.border2}`,
               background: error ? T.red : digits.length > i ? T.flame : "transparent",
+              transition: "background .12s ease, border-color .12s ease",
             }} />
           ))}
         </div>
-        {error && <p style={{ fontSize: 12, color: T.red, marginBottom: 14 }}>PIN noto'g'ri</p>}
+        {error && <p style={{ fontSize: 12, color: T.red, marginBottom: 14, fontWeight: 600 }}>PIN noto'g'ri</p>}
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 11 }}>
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-            <button key={n} onClick={() => press(String(n))} style={{
+            <button key={n} className="pin-key" onClick={() => press(String(n))} style={{
               background: T.s1, border: `1px solid ${T.border2}`, borderRadius: 14,
-              color: T.text, fontSize: 20, fontWeight: 600, padding: "16px 0", cursor: "pointer",
-              boxShadow: "0 1px 3px rgba(20,30,45,.06)",
+              color: T.text, fontSize: 19, fontWeight: 600, padding: "15px 0", cursor: "pointer",
+              boxShadow: T.shadowSm,
             }}>{n}</button>
           ))}
           <div />
-          <button onClick={() => press("0")} style={{
+          <button className="pin-key" onClick={() => press("0")} style={{
             background: T.s1, border: `1px solid ${T.border2}`, borderRadius: 14,
-            color: T.text, fontSize: 20, fontWeight: 600, padding: "16px 0", cursor: "pointer",
-            boxShadow: "0 1px 3px rgba(20,30,45,.06)",
+            color: T.text, fontSize: 19, fontWeight: 600, padding: "15px 0", cursor: "pointer",
+            boxShadow: T.shadowSm,
           }}>0</button>
-          <button onClick={() => !error && setDigits((s) => s.slice(0, -1))} style={{
+          <button className="pin-key" onClick={() => !error && setDigits((s) => s.slice(0, -1))} style={{
             background: T.s1, border: `1px solid ${T.border2}`, borderRadius: 14,
-            color: T.muted, padding: "16px 0", cursor: "pointer",
-            boxShadow: "0 1px 3px rgba(20,30,45,.06)",
+            color: T.muted, padding: "15px 0", cursor: "pointer",
+            boxShadow: T.shadowSm,
             display: "flex", alignItems: "center", justifyContent: "center",
-          }}><Delete size={19} /></button>
+          }}><Delete size={18} /></button>
         </div>
       </div>
     </div>
@@ -1010,7 +1130,7 @@ export default function App() {
   if (!loaded)
     return (
       <div style={{
-        minHeight: "100vh", background: T.bg, display: "flex",
+        minHeight: "100vh", display: "flex",
         alignItems: "center", justifyContent: "center",
       }}>
         <GlobalStyles />
@@ -1021,36 +1141,43 @@ export default function App() {
   if (!role) return <LoginScreen pins={data.settings.pins} onSuccess={setRole} />;
 
   return (
-    <div style={{ minHeight: "100vh", background: T.bg, color: T.text }}>
+    <div style={{ minHeight: "100vh", color: T.text }}>
       <GlobalStyles />
 
       {/* HEADER */}
       <header style={{
-        background: T.s1, borderBottom: `1px solid ${T.border}`,
-        padding: "0 20px", height: 54, display: "flex",
+        background: `linear-gradient(180deg,${T.s1},${T.s1}F2)`,
+        backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+        borderBottom: `1px solid ${T.border}`,
+        padding: "0 20px", height: 56, display: "flex",
         alignItems: "center", justifyContent: "space-between",
         position: "sticky", top: 0, zIndex: 100,
-        boxShadow: "0 1px 2px rgba(20,30,45,.04)",
+        boxShadow: T.shadowSm,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
           <div style={{
-            width: 32, height: 32, borderRadius: 8,
+            width: 34, height: 34, borderRadius: 10,
             background: `linear-gradient(135deg,${T.flame},#BF360C)`,
             display: "flex", alignItems: "center", justifyContent: "center",
-          }}><Zap size={16} color="#fff" /></div>
+            boxShadow: `0 6px 14px -5px ${T.flame}90`,
+          }}><Zap size={17} color="#fff" /></div>
           <div>
-            <div className="bc" style={{ fontSize: 15, fontWeight: 800, letterSpacing: ".05em", lineHeight: 1 }}>
+            <div className="bc" style={{ fontSize: 15.5, fontWeight: 800, letterSpacing: ".05em", lineHeight: 1, whiteSpace: "nowrap" }}>
               AVTOGAZ SERVICE
             </div>
-            <div style={{ fontSize: 9.5, color: T.muted, letterSpacing: ".1em", fontWeight: 600, marginTop: 2 }}>
-              {ROLE_LABELS[role].toUpperCase()} · {fmtDate(todayISO())}
+            <div style={{ fontSize: 9.5, color: T.muted, letterSpacing: ".1em", fontWeight: 600, marginTop: 3, display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                color: T.flame, background: T.flameD, padding: "1.5px 7px", borderRadius: 20, fontWeight: 700,
+              }}>{ROLE_LABELS[role].toUpperCase()}</span>
+              <span className="hide-sm">{fmtDate(todayISO())}</span>
             </div>
           </div>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {dataSource === "local" && (
-            <span title="Serverdan yuklab bo'lmadi — mahalliy zaxiradan tiklandi" style={{
+            <span title="Serverdan yuklab bo'lmadi — mahalliy zaxiradan tiklandi" className="hide-xs" style={{
               fontSize: 10, color: T.gold, display: "flex", alignItems: "center", gap: 4,
               background: T.goldD, padding: "4px 9px", borderRadius: 20, fontWeight: 600,
             }}>
@@ -1058,7 +1185,7 @@ export default function App() {
             </span>
           )}
 
-          <span style={{
+          <span className="hide-xs" style={{
             fontSize: 10.5, fontWeight: 600, color: T.muted,
             display: "flex", alignItems: "center", gap: 4,
           }}>
@@ -1069,13 +1196,15 @@ export default function App() {
 
           <button
             onClick={() => saveToServer(data)}
+            className="btn-lift"
             style={{
               display: "flex", alignItems: "center", gap: 6,
-              padding: "7px 13px", borderRadius: 8, border: "none", cursor: "pointer",
+              padding: "7px 13px", borderRadius: 9, border: "none", cursor: "pointer",
               background: saveState === "error"
                 ? `linear-gradient(135deg,${T.red},#B71C1C)`
                 : `linear-gradient(135deg,${T.teal},#00897B)`,
               color: "#fff", fontSize: 12, fontWeight: 700,
+              boxShadow: `0 6px 14px -6px ${saveState === "error" ? T.red : T.teal}90`,
             }}
           >
             {saveState === "saving"
@@ -1110,27 +1239,35 @@ export default function App() {
       {/* TABS */}
       <div style={{
         background: T.s1, borderBottom: `1px solid ${T.border}`,
-        display: "flex", padding: "8px 20px", overflowX: "auto", gap: 4,
+        padding: "10px 20px", position: "sticky", top: 56, zIndex: 90,
+        boxShadow: "0 1px 0 rgba(16,24,40,.03)",
       }}>
-        {tabs.map(({ id, label, Icon }) => {
-          const a = tab === id;
-          return (
-            <button key={id} onClick={() => setTab(id)} style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "8px 14px", border: "none", borderRadius: 8,
-              cursor: "pointer", fontSize: 12.5, fontWeight: a ? 700 : 500,
-              color: a ? T.flame : T.muted2,
-              background: a ? T.flameD : "transparent",
-              whiteSpace: "nowrap", transition: "background .12s, color .12s",
-            }}>
-              <Icon size={14} /> {label}
-            </button>
-          );
-        })}
+        <div style={{
+          display: "flex", overflowX: "auto", gap: 3,
+          background: T.s3, border: `1px solid ${T.border}`,
+          borderRadius: 11, padding: 4, width: "fit-content", maxWidth: "100%",
+        }}>
+          {tabs.map(({ id, label, Icon }) => {
+            const a = tab === id;
+            return (
+              <button key={id} onClick={() => setTab(id)} className={a ? "" : "tab-btn"} style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "8px 14px", border: "none", borderRadius: 8,
+                cursor: "pointer", fontSize: 12.5, fontWeight: a ? 700 : 500,
+                color: a ? T.flame : T.muted2,
+                background: a ? T.s1 : "transparent",
+                boxShadow: a ? T.shadowSm : "none",
+                whiteSpace: "nowrap", transition: "background .12s, color .12s, box-shadow .12s",
+              }}>
+                <Icon size={14} /> {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* CONTENT */}
-      <div style={{ padding: "22px 20px", maxWidth: 1400, margin: "0 auto" }} className="fi">
+      <div style={{ padding: "24px 20px 40px", maxWidth: 1400, margin: "0 auto" }} className="fi">
         {tab === "dashboard"  && <DashboardTab  data={data} patch={patch} rate={rate} setTab={setTab} />}
         {tab === "callcenter" && <CallCenterTab data={data} patch={patch} />}
         {tab === "services"   && <ServicesTab   data={data} patch={patch} rate={rate} />}
@@ -1227,9 +1364,9 @@ function DashboardTab({ data, patch, rate, setTab }) {
           sub={`${ustaPending.length} ta usta`} color={T.red} Icon={Wrench} />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 16, marginBottom: 16 }}>
+      <div className="grid-2b" style={{ marginBottom: 16 }}>
         {/* OCHIQ KARTALAR */}
-        <Card title={`Ochiq kartalar (${openCards.length})`} pad={false}
+        <Card title={`Ochiq kartalar (${openCards.length})`} Icon={Car} color={T.flame} pad={false}
           action={<Btn size="sm" variant="ghost" onClick={() => setTab("services")}>Barchasi <ArrowRight size={11} /></Btn>}>
           {openCards.length === 0 ? (
             <div style={{ padding: "30px 20px", textAlign: "center", color: T.muted, fontSize: 13 }}>
@@ -1264,7 +1401,7 @@ function DashboardTab({ data, patch, rate, setTab }) {
         </Card>
 
         {/* KUTILAYOTGAN QO'NG'IROQLAR */}
-        <Card title={`Kutilmoqda (${waitingLeads.length})`} pad={false}
+        <Card title={`Kutilmoqda (${waitingLeads.length})`} Icon={PhoneCall} color={T.gold} pad={false}
           action={<Btn size="sm" variant="ghost" onClick={() => setTab("callcenter")}>Barchasi <ArrowRight size={11} /></Btn>}>
           {waitingLeads.length === 0 ? (
             <div style={{ padding: "30px 20px", textAlign: "center", color: T.muted, fontSize: 13 }}>
@@ -1295,8 +1432,8 @@ function DashboardTab({ data, patch, rate, setTab }) {
       </div>
 
       {/* BOTTOM ROW */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
-        <Card title="Usta haqi — bugun">
+      <div className="grid-3b">
+        <Card title="Usta haqi — bugun" Icon={Wrench} color={T.red}>
           {ustaPending.length === 0 ? (
             <div style={{ color: T.teal, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
               <Check size={14} /> Hammasi to'langan
@@ -1314,7 +1451,7 @@ function DashboardTab({ data, patch, rate, setTab }) {
           ))}
         </Card>
 
-        <Card title="Bugungi xizmatlar">
+        <Card title="Bugungi xizmatlar" Icon={Zap} color={T.teal}>
           {SERVICE_TYPES.map((t) => {
             const n = todayCards.filter((c) => c.serviceType === t).length;
             return (
@@ -1334,7 +1471,7 @@ function DashboardTab({ data, patch, rate, setTab }) {
           })}
         </Card>
 
-        <Card title="Qarzlar">
+        <Card title="Qarzlar" Icon={AlertTriangle} color={T.red}>
           {[
             ["Ta'minotchiga", supDebt, T.red],
             ["Hamkorlardan", partnerBalances(data).reduce((s, p) => s + Math.max(0, p.debtSum), 0), T.teal],
@@ -1417,18 +1554,12 @@ function CallCenterTab({ data, patch }) {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18, flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <h2 className="bc" style={{ fontSize: 22, fontWeight: 800 }}>Qo'ng'iroqlar markazi</h2>
-          <p style={{ color: T.muted, fontSize: 12, marginTop: 3 }}>
-            Jami {(data.leads || []).length} ta qo'ng'iroq
-          </p>
-        </div>
-        <Btn onClick={() => setAddOpen(true)}><Plus size={15} /> Qo'ng'iroq qabul qilish</Btn>
-      </div>
+      <PageHeader Icon={PhoneCall} color={T.blue} title="Qo'ng'iroqlar markazi"
+        sub={`Jami ${(data.leads || []).length} ta qo'ng'iroq`}
+        action={<Btn onClick={() => setAddOpen(true)}><Plus size={15} /> Qo'ng'iroq qabul qilish</Btn>} />
 
       {/* VORONKA */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 18 }}>
+      <div className="grid-4b" style={{ marginBottom: 18 }}>
         {counts.map((s) => (
           <div key={s.id} onClick={() => setStageFilter(stageFilter === s.id ? "hammasi" : s.id)} style={{
             background: stageFilter === s.id ? s.color + "18" : T.s1,
@@ -1768,15 +1899,9 @@ function ServicesTab({ data, patch, rate }) {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18, flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <h2 className="bc" style={{ fontSize: 22, fontWeight: 800 }}>Xizmat kartalari</h2>
-          <p style={{ color: T.muted, fontSize: 12, marginTop: 3 }}>
-            {openCards.length} ta ochiq · {closedCards.length} ta yakunlangan
-          </p>
-        </div>
-        <Btn onClick={() => setNewOpen(true)}><Plus size={15} /> Yangi karta</Btn>
-      </div>
+      <PageHeader Icon={Car} color={T.flame} title="Xizmat kartalari"
+        sub={`${openCards.length} ta ochiq · ${closedCards.length} ta yakunlangan`}
+        action={<Btn onClick={() => setNewOpen(true)}><Plus size={15} /> Yangi karta</Btn>} />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 13, marginBottom: 20 }}>
         <Stat label="Ochiq kartalar" value={openCards.length + " ta"} color={T.gold} Icon={Clock} />
@@ -1846,7 +1971,7 @@ function ServicesTab({ data, patch, rate }) {
           placeholder="Raqam, mashina, telefon..." style={{ ...iSt, paddingLeft: 32 }} />
       </div>
 
-      <Card title={`Yakunlangan kartalar (${closedCards.length})`} pad={false}>
+      <Card title={`Yakunlangan kartalar (${closedCards.length})`} Icon={Check} color={T.teal} pad={false}>
         <Tbl
           empty="Yakunlangan karta yo'q"
           cols={[
@@ -2380,18 +2505,12 @@ function WarehouseTab({ data, patch, rate }) {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18, flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <h2 className="bc" style={{ fontSize: 22, fontWeight: 800 }}>Sklad</h2>
-          <p style={{ color: T.muted, fontSize: 12, marginTop: 3 }}>
-            Qiymati: <span style={{ color: T.gold, fontWeight: 600 }}>{fmtSum(totalValueSum)}</span>
-          </p>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
+      <PageHeader Icon={Package} color={T.gold} title="Sklad"
+        sub={<>Qiymati: <span style={{ color: T.gold, fontWeight: 600 }}>{fmtSum(totalValueSum)}</span></>}
+        action={<div style={{ display: "flex", gap: 8 }}>
           <Btn variant="ghost" onClick={() => setSaleOpen(true)}><ShoppingCart size={14} /> Erkin savdo</Btn>
           <Btn onClick={() => setStockOpen(true)}><Plus size={15} /> Kirim qilish</Btn>
-        </div>
-      </div>
+        </div>} />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 13, marginBottom: 18 }}>
         <Stat label="Mahsulot turlari" value={data.products.length + " ta"} color={T.blue} Icon={Package} />
@@ -2406,17 +2525,18 @@ function WarehouseTab({ data, patch, rate }) {
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {categories.map((c) => (
-            <button key={c} onClick={() => setCatFilter(c)} style={{
-              padding: "7px 12px", borderRadius: 7, cursor: "pointer", fontSize: 11.5, fontWeight: 500,
+            <button key={c} className={catFilter === c ? "" : "tab-btn"} onClick={() => setCatFilter(c)} style={{
+              padding: "7px 12px", borderRadius: 8, cursor: "pointer", fontSize: 11.5, fontWeight: 500,
               border: `1px solid ${catFilter === c ? T.flame : T.border2}`,
-              background: catFilter === c ? T.flameD : "transparent",
+              background: catFilter === c ? T.flameD : T.s1,
               color: catFilter === c ? T.flame : T.muted,
+              boxShadow: T.shadowSm,
             }}>{c === "barchasi" ? "Barchasi" : c}</button>
           ))}
         </div>
       </div>
 
-      <Card title={`Mahsulotlar (${products.length})`} pad={false}>
+      <Card title={`Mahsulotlar (${products.length})`} Icon={Package} color={T.flame} pad={false}>
         <Tbl
           empty="Mahsulot yo'q"
           cols={[
@@ -2433,7 +2553,7 @@ function WarehouseTab({ data, patch, rate }) {
       </Card>
 
       <div style={{ marginTop: 16 }}>
-        <Card title={`Kirim tarixi (${data.stockIns.length})`} pad={false}>
+        <Card title={`Kirim tarixi (${data.stockIns.length})`} Icon={Download} color={T.teal} pad={false}>
           <Tbl
             empty="Kirim yo'q"
             cols={[
@@ -2456,7 +2576,7 @@ function WarehouseTab({ data, patch, rate }) {
 
       {(data.stockOuts || []).length > 0 && (
         <div style={{ marginTop: 16 }}>
-          <Card title={`Chiqim tarixi — Insider servis (${data.stockOuts.length})`} pad={false}>
+          <Card title={`Chiqim tarixi — Insider servis (${data.stockOuts.length})`} Icon={Upload} color={T.gold} pad={false}>
             <Tbl
               empty="Chiqim yo'q"
               cols={[
@@ -2809,17 +2929,12 @@ function CashierTab({ data, patch, rate }) {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18, flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <h2 className="bc" style={{ fontSize: 22, fontWeight: 800 }}>Kassa</h2>
-          <p style={{ color: T.muted, fontSize: 12, marginTop: 3 }}>Naqd pul harakati va qarzlar</p>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
+      <PageHeader Icon={Wallet} color={T.teal} title="Kassa" sub="Naqd pul harakati va qarzlar"
+        action={<div style={{ display: "flex", gap: 8 }}>
           <Btn variant="ghost" onClick={() => setReportOpen(true)}><Calendar size={14} /> Kun hisoboti</Btn>
           <Btn variant="gold" onClick={() => setGivePersonalOpen(true)}><Users size={14} /> Shaxsiy qarz berish</Btn>
           <Btn onClick={() => setOpen(true)}><Plus size={15} /> Yozuv qo'shish</Btn>
-        </div>
-      </div>
+        </div>} />
 
       {dueSoon.length > 0 && (
         <div style={{ background: T.redD, border: `1px solid ${T.red}40`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
@@ -2836,7 +2951,7 @@ function CashierTab({ data, patch, rate }) {
         <Stat label="Ta'minotchi qarzi" value={fmtSum(totalDebt)} color={T.red} Icon={AlertTriangle} />
       </div>
 
-      <Card title={`Kassa harakati (${cashFlow.length})`} pad={false}>
+      <Card title={`Kassa harakati (${cashFlow.length})`} Icon={Wallet} color={T.gold} pad={false}>
         <Tbl
           empty="Yozuv yo'q"
           cols={[
@@ -2854,7 +2969,7 @@ function CashierTab({ data, patch, rate }) {
       </Card>
 
       <div style={{ marginTop: 16 }}>
-        <Card title="Ta'minotchi qarzlari" pad={false}>
+        <Card title="Ta'minotchi qarzlari" Icon={Handshake} color={T.red} pad={false}>
           <Tbl
             empty="Qarz yo'q"
             cols={[
@@ -2870,7 +2985,7 @@ function CashierTab({ data, patch, rate }) {
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <Card title={`Nasiya qarzdorlar (${unpaidNasiya.length})`} pad={false}>
+        <Card title={`Nasiya qarzdorlar (${unpaidNasiya.length})`} Icon={AlertTriangle} color={T.red} pad={false}>
           <Tbl
             empty="Nasiya qarzdorlik yo'q"
             cols={[
@@ -2890,7 +3005,7 @@ function CashierTab({ data, patch, rate }) {
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <Card title={`Shaxsiy qarzdorlar (${(data.personalDebts || []).filter((p) => !p.paid).length})`} pad={false}>
+        <Card title={`Shaxsiy qarzdorlar (${(data.personalDebts || []).filter((p) => !p.paid).length})`} Icon={Users} color={T.red} pad={false}>
           <Tbl
             empty="Shaxsiy qarzdorlik yo'q"
             cols={[
@@ -3123,7 +3238,7 @@ function DocFeesSection({ data }) {
   const total = filtered.reduce((s, r) => s + r.docFee, 0);
 
   return (
-    <Card title={`Hujjat xarajatlari (${filtered.length})`} pad={false}
+    <Card title={`Hujjat xarajatlari (${filtered.length})`} Icon={Pencil} color={T.blue} pad={false}
       action={
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {months.length > 1 && (
@@ -3329,6 +3444,7 @@ function UstaTab({ data, patch, rate, canManage = true }) {
 
   return (
     <div>
+      <PageHeader Icon={Wrench} color={T.gold} title="Usta hisobi" sub="Ustalarning xizmat haqi va to'lovlar" />
       {!canManage && (
         <div style={{ background: T.s2, border: `1px solid ${T.border2}`, borderRadius: 10, padding: "11px 15px", marginBottom: 16, fontSize: 12, color: T.muted, display: "flex", alignItems: "center", gap: 8 }}>
           <Lock size={13} color={T.flame} /> Faqat ko'rish — to'lovlarni yopish uchun Kassirga murojaat qiling
@@ -3343,7 +3459,7 @@ function UstaTab({ data, patch, rate, canManage = true }) {
 
       {canManage && (
         <div style={{ marginBottom: 16 }}>
-          <Card title="Kelishilgan (oylik) ustalar"
+          <Card title="Kelishilgan (oylik) ustalar" Icon={Wrench} color={T.purple}
             action={<Btn size="sm" onClick={() => setAddContractedOpen(true)}><Plus size={12} /> Qo'shish</Btn>}>
             <p style={{ fontSize: 12, color: T.muted, marginBottom: contractedMasters.length ? 12 : 0 }}>
               Bu ro'yxatdagi ustalarning xizmat haqi kassadan to'lanmaydi — <b>servis foydasi</b> sifatida hisoblanadi
@@ -3369,7 +3485,7 @@ function UstaTab({ data, patch, rate, canManage = true }) {
         </div>
       )}
 
-      <Card title="Usta bo'yicha holat" pad={false}>
+      <Card title="Usta bo'yicha holat" Icon={BarChart3} color={T.teal} pad={false}>
         <Tbl
           empty="Kutilayotgan to'lov yo'q"
           cols={[
@@ -3382,7 +3498,7 @@ function UstaTab({ data, patch, rate, canManage = true }) {
         />
       </Card>
       <div style={{ marginTop: 16 }}>
-        <Card title="Kun bo'yicha yig'ilgan" pad={false}>
+        <Card title="Kun bo'yicha yig'ilgan" Icon={Calendar} color={T.gold} pad={false}>
           <Tbl
             empty="Yozuv yo'q"
             cols={[
@@ -3397,7 +3513,7 @@ function UstaTab({ data, patch, rate, canManage = true }) {
         </Card>
       </div>
       <div style={{ marginTop: 16 }}>
-        <Card title="To'langan tarix" pad={false}>
+        <Card title="To'langan tarix" Icon={Check} color={T.teal} pad={false}>
           <Tbl
             empty="Ma'lumot yo'q"
             cols={[
@@ -3478,13 +3594,8 @@ function WarrantyTab({ data, patch }) {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18, flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <h2 className="bc" style={{ fontSize: 22, fontWeight: 800 }}>Kafolat</h2>
-          <p style={{ color: T.muted, fontSize: 12, marginTop: 3 }}>{active} ta faol</p>
-        </div>
-        <Btn variant="ghost" onClick={() => setManualOpen(true)}><Plus size={14} /> Eski mijoz kafolati</Btn>
-      </div>
+      <PageHeader Icon={ShieldCheck} color={T.teal} title="Kafolat" sub={`${active} ta faol`}
+        action={<Btn variant="ghost" onClick={() => setManualOpen(true)}><Plus size={14} /> Eski mijoz kafolati</Btn>} />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 13, marginBottom: 20 }}>
         <Stat label="Faol kafolatlar" value={active + " ta"} color={T.teal} Icon={ShieldCheck} />
@@ -3492,7 +3603,7 @@ function WarrantyTab({ data, patch }) {
         <Stat label="Almashtirishlar" value={data.warrantyClaims.length + " ta"} color={T.red} Icon={AlertTriangle} />
       </div>
 
-      <Card title="Kafolatlangan kartalar" pad={false}>
+      <Card title="Kafolatlangan kartalar" Icon={ShieldCheck} color={T.teal} pad={false}>
         <Tbl
           empty="Karta yo'q"
           cols={[
@@ -3511,7 +3622,7 @@ function WarrantyTab({ data, patch }) {
 
       {broken.length > 0 && (
         <div style={{ marginTop: 16 }}>
-          <Card title={`Yaroqsiz tovarlar (${broken.length})`} pad={false}>
+          <Card title={`Yaroqsiz tovarlar (${broken.length})`} Icon={AlertTriangle} color={T.red} pad={false}>
             <Tbl
               empty=""
               cols={[
@@ -3660,18 +3771,14 @@ function PartnersTab({ data, patch, rate }) {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18, flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <h2 className="bc" style={{ fontSize: 22, fontWeight: 800 }}>Hamkorlar</h2>
-          <p style={{ color: T.muted, fontSize: 12, marginTop: 3 }}>Jami qarz: <span style={{ color: T.red, fontWeight: 600 }}>{fmtSum(totalDebt)}</span></p>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
+      <PageHeader Icon={Handshake} color={T.purple} title="Hamkorlar"
+        sub={<>Jami qarz: <span style={{ color: T.red, fontWeight: 600 }}>{fmtSum(totalDebt)}</span></>}
+        action={<div style={{ display: "flex", gap: 8 }}>
           <Btn variant="gold" onClick={() => setBonusRulesOpen(true)}>
             <Star size={14} /> Bonus qoidalari {bonusRules.length > 0 && `(${bonusRules.length})`}
           </Btn>
           <Btn onClick={() => setAddOpen(true)}><Plus size={15} /> Hamkor qo'shish</Btn>
-        </div>
-      </div>
+        </div>} />
 
       {unclaimedBonuses.length > 0 && (
         <div style={{
@@ -3706,7 +3813,7 @@ function PartnersTab({ data, patch, rate }) {
         </div>
       )}
 
-      <Card title={`Hamkorlar (${balances.length})`} pad={false}>
+      <Card title={`Hamkorlar (${balances.length})`} Icon={Handshake} color={T.purple} pad={false}>
         <Tbl
           empty="Hamkor yo'q"
           cols={[
@@ -3728,7 +3835,7 @@ function PartnersTab({ data, patch, rate }) {
 
       {bonusRules.length > 0 && (
         <div style={{ marginTop: 16 }}>
-          <Card title="Bonus limit qoidalari" pad={false}>
+          <Card title="Bonus limit qoidalari" Icon={Star} color={T.gold} pad={false}>
             <Tbl
               empty=""
               cols={[
@@ -3913,13 +4020,8 @@ function EmployeesTab({ data, patch, rate }) {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18, flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <h2 className="bc" style={{ fontSize: 22, fontWeight: 800 }}>Xodimlar</h2>
-          <p style={{ color: T.muted, fontSize: 12, marginTop: 3 }}>Erkin lavozim va moslashuvchan oylik</p>
-        </div>
-        <Btn onClick={() => setAddOpen(true)}><Plus size={15} /> Xodim qo'shish</Btn>
-      </div>
+      <PageHeader Icon={Users} color={T.blue} title="Xodimlar" sub="Erkin lavozim va moslashuvchan oylik"
+        action={<Btn onClick={() => setAddOpen(true)}><Plus size={15} /> Xodim qo'shish</Btn>} />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 13, marginBottom: 20 }}>
         <Stat label="Jami xodimlar" value={employees.length + " ta"} color={T.blue} Icon={Users} />
@@ -3934,7 +4036,7 @@ function EmployeesTab({ data, patch, rate }) {
           options={months.map((m) => ({ value: m, label: m }))} />
       </div>
 
-      <Card title={`Xodimlar ro'yxati (${employees.length})`} pad={false}>
+      <Card title={`Xodimlar ro'yxati (${employees.length})`} Icon={Users} color={T.blue} pad={false}>
         <Tbl
           empty="Hali xodim qo'shilmagan"
           cols={[
@@ -3966,7 +4068,7 @@ function EmployeesTab({ data, patch, rate }) {
       </Card>
 
       <div style={{ marginTop: 16 }}>
-        <Card title={`To'lovlar tarixi — ${monthFilter}`} pad={false}>
+        <Card title={`To'lovlar tarixi — ${monthFilter}`} Icon={Wallet} color={T.teal} pad={false}>
           <Tbl
             empty="Bu oyda to'lov yo'q"
             cols={[
@@ -4087,8 +4189,7 @@ function AnalyticsTab({ data, patch, rate }) {
 
   return (
     <div>
-      <h2 className="bc" style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>Analitika</h2>
-      <p style={{ color: T.muted, fontSize: 12, marginBottom: 18 }}>Umumiy moliyaviy ko'rinish</p>
+      <PageHeader Icon={BarChart3} color={T.purple} title="Analitika" sub="Umumiy moliyaviy ko'rinish" />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 13, marginBottom: 20 }}>
         <Stat label="Ustanovka soni" value={ustanovka.length + " ta"} sub={fmtSum(sumF(ustanovka, "finalTotal"))} color={T.flame} Icon={Car} />
@@ -4103,7 +4204,7 @@ function AnalyticsTab({ data, patch, rate }) {
         <KpiEditCard value={azimKpi} onSave={(v) => patch((d) => { d.settings.azimKpi = v; return d; })} />
       </div>
 
-      <Card title="Xizmat turlari bo'yicha tushum">
+      <Card title="Xizmat turlari bo'yicha tushum" Icon={BarChart3} color={T.purple}>
         <div style={{ display: "grid", gap: 14 }}>
           {rows.map((r) => (
             <div key={r.label}>
@@ -4163,6 +4264,7 @@ function OwnerMonthlyReport({ data, rate }) {
   return (
     <Card
       title="Rahbar oylik hisoboti"
+      Icon={Wallet} color={T.flame}
       action={
         <Sel value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)}
           style={{ width: 150 }}
