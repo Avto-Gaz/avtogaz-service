@@ -3011,7 +3011,17 @@ function CashierTab({ data, patch, rate }) {
             { k: "amount", h: "Summa", r: (r) => <span className="mo" style={{ fontWeight: 700, color: r.type === "kirim" ? T.teal : T.red }}>{r.type === "kirim" ? "+" : "-"}{r.currency === "USD" ? fmtUsd(r.amount) : fmtSum(r.amountSum)}</span> },
             { k: "note", h: "Izoh", r: (r) => <span style={{ color: T.muted, fontSize: 12 }}>{r.note || "—"}</span> },
             { k: "edit", h: "", r: (r) => <button onClick={() => setEditEntry(r)} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted }}><Pencil size={13} /></button> },
-            { k: "del", h: "", r: (r) => <button onClick={() => patch((d) => { d.cashflow = d.cashflow.filter((x) => x.id !== r.id); return d; })} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted }}><Trash2 size={13} /></button> },
+            {
+              k: "del", h: "", r: (r) => (
+                <button onClick={async () => {
+                  const linked = r.cardId || ["Ta'minotchiga to'lov", "Usta xizmat haqi", "Ish haqi"].includes(r.category);
+                  const msg = linked
+                    ? "Bu yozuv bog'liq qarz/hisobga ta'sir qilishi mumkin — o'chirilsa ham u yerdagi summa avtomatik tuzatilmaydi.\nBaribir o'chirilsinmi?"
+                    : "Bu kassa yozuvi o'chirilsinmi?";
+                  if (await askConfirm(msg)) patch((d) => { d.cashflow = d.cashflow.filter((x) => x.id !== r.id); return d; });
+                }} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted }}><Trash2 size={13} /></button>
+              ),
+            },
           ]}
           rows={[...cashFlow].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 80)}
         />
@@ -3125,11 +3135,19 @@ function EditCashEntryModal({ entry, rate, onClose, onSave }) {
 
   const amountSum = toSum(amount, currency, rate);
 
+  const linked = entry.cardId || ["Ta'minotchiga to'lov", "Usta xizmat haqi", "Ish haqi"].includes(entry.category);
+
   return (
     <Modal title="Kassa yozuvini tahrirlash" onClose={onClose} wide>
       <div style={{ padding: "10px 14px", background: T.goldD, border: `1px solid ${T.gold}30`, borderRadius: 8, marginBottom: 16, fontSize: 12, color: T.gold }}>
         Sana: {fmtDate(entry.date)} — asl yozuv o'zgartiriladi
       </div>
+      {linked && (
+        <div style={{ padding: "10px 14px", background: T.redD, border: `1px solid ${T.red}30`, borderRadius: 8, marginBottom: 16, fontSize: 12, color: T.red, display: "flex", alignItems: "center", gap: 8 }}>
+          <AlertTriangle size={14} /> Bu yozuv bog'liq qarz/hisobga (ta'minotchi, usta yoki xodim) ulangan —
+          bu yerda summani o'zgartirsangiz, u yerdagi hisob avtomatik tuzatilmaydi.
+        </div>
+      )}
 
       <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", border: `1px solid ${T.border2}`, marginBottom: 14 }}>
         <button onClick={() => setType("kirim")} style={{ flex: 1, padding: 9, border: "none", cursor: "pointer", fontWeight: 600, fontSize: 13, background: type === "kirim" ? T.teal : "transparent", color: type === "kirim" ? "#fff" : T.muted }}>Kirim</button>
