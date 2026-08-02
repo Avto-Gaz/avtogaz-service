@@ -4069,6 +4069,7 @@ function currentMonthKey() { return todayISO().slice(0, 7); }
 
 function EmployeesTab({ data, patch, rate }) {
   const [addOpen, setAddOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(null);
   const [payOpen, setPayOpen] = useState(null);
   const [monthFilter, setMonthFilter] = useState(currentMonthKey());
 
@@ -4082,6 +4083,14 @@ function EmployeesTab({ data, patch, rate }) {
 
   function addEmployee(emp) {
     patch((d) => { d.employees.push({ id: uid(), ...emp }); return d; });
+  }
+
+  function editEmployee(id, updates) {
+    patch((d) => {
+      const e = d.employees.find((x) => x.id === id);
+      if (e) Object.assign(e, updates);
+      return d;
+    });
   }
 
   function payEmployee(employeeId, amountSum, month, note) {
@@ -4142,7 +4151,16 @@ function EmployeesTab({ data, patch, rate }) {
               r: (r) => (
                 <div style={{ display: "flex", gap: 6 }}>
                   <Btn size="sm" variant="teal" onClick={() => setPayOpen(r)}>Oylik to'lash</Btn>
-                  <button onClick={async () => { if (await askConfirm(`${r.name} o'chirilsinmi?`)) deleteEmployee(r.id); }}
+                  <button onClick={() => setEditOpen(r)} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted }}>
+                    <Pencil size={13} />
+                  </button>
+                  <button onClick={async () => {
+                    const hasHistory = payments.some((p) => p.employeeId === r.id);
+                    const msg = hasHistory
+                      ? `${r.name} o'chirilsinmi?\nBu xodimning o'tgan to'lovlar tarixidagi ismi "Noma'lum" bo'lib qoladi.`
+                      : `${r.name} o'chirilsinmi?`;
+                    if (await askConfirm(msg)) deleteEmployee(r.id);
+                  }}
                     style={{ background: "none", border: "none", cursor: "pointer", color: T.muted }}>
                     <Trash2 size={13} />
                   </button>
@@ -4173,6 +4191,12 @@ function EmployeesTab({ data, patch, rate }) {
       </div>
 
       {addOpen && <AddEmployeeModal onClose={() => setAddOpen(false)} onSave={(emp) => { addEmployee(emp); setAddOpen(false); }} />}
+      {editOpen && (
+        <AddEmployeeModal
+          employee={editOpen} onClose={() => setEditOpen(null)}
+          onSave={(emp) => { editEmployee(editOpen.id, emp); setEditOpen(null); }}
+        />
+      )}
       {payOpen && (
         <PayEmployeeModal
           employee={payOpen} month={monthFilter}
@@ -4185,14 +4209,14 @@ function EmployeesTab({ data, patch, rate }) {
   );
 }
 
-function AddEmployeeModal({ onClose, onSave }) {
-  const [name, setName] = useState("");
-  const [position, setPosition] = useState("");
-  const [phone, setPhone] = useState("");
-  const [standardSalary, setStandardSalary] = useState("");
+function AddEmployeeModal({ employee, onClose, onSave }) {
+  const [name, setName] = useState(employee?.name || "");
+  const [position, setPosition] = useState(employee?.position || "");
+  const [phone, setPhone] = useState(employee?.phone || "");
+  const [standardSalary, setStandardSalary] = useState(employee ? String(employee.standardSalary || "") : "");
 
   return (
-    <Modal title="Yangi xodim qo'shish" onClose={onClose}>
+    <Modal title={employee ? `Xodimni tahrirlash — ${employee.name}` : "Yangi xodim qo'shish"} onClose={onClose}>
       <div style={{ display: "grid", gap: 12 }}>
         <F label="Ismi *"><input style={iSt} value={name} onChange={(e) => setName(e.target.value)} autoFocus /></F>
         <F label="Lavozim *">
