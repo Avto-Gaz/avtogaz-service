@@ -214,19 +214,19 @@ function doExportExcel(data, rate) {
    DESIGN TOKENS
 ═══════════════════════════════════════════════════ */
 const T = {
-  bg: "#EEF1F7", s1: "#FFFFFF", s2: "#FBFCFE", s3: "#F1F4F9", s4: "#E9EDF4",
-  border: "#E4E9F1", border2: "#D6DEEA",
-  text: "#141C29", muted: "#8593A3", muted2: "#54637A",
-  navy: "#101828", navy2: "#182236",
-  flame: "#E8541F", flameD: "#E8541F12",
-  gold: "#D68A00", goldD: "#D68A0012",
-  teal: "#0F9D82", tealD: "#0F9D8212",
-  red: "#DC3545", redD: "#DC354512",
-  blue: "#1F6FEB", blueD: "#1F6FEB12",
-  purple: "#6C4CD8", purpleD: "#6C4CD812",
-  shadowSm: "0 1px 2px rgba(16,24,40,.06)",
-  shadowMd: "0 6px 20px -4px rgba(16,24,40,.10), 0 2px 6px -2px rgba(16,24,40,.06)",
-  shadowLg: "0 20px 50px -12px rgba(16,24,40,.20)",
+  bg: "#EAEDF5", s1: "#FFFFFF", s2: "#FAFBFD", s3: "#F0F3F9", s4: "#E7EBF3",
+  border: "#E3E8F1", border2: "#D2DAE7",
+  text: "#12192B", muted: "#828FA3", muted2: "#4F5E76",
+  navy: "#0D1526", navy2: "#182236",
+  flame: "#E8541F", flameD: "#E8541F14",
+  gold: "#CE8A00", goldD: "#CE8A0014",
+  teal: "#0C9B80", tealD: "#0C9B8014",
+  red: "#DC3545", redD: "#DC354514",
+  blue: "#1D6FEB", blueD: "#1D6FEB14",
+  purple: "#7150D9", purpleD: "#7150D914",
+  shadowSm: "0 1px 2px rgba(13,21,38,.06)",
+  shadowMd: "0 8px 24px -6px rgba(13,21,38,.12), 0 2px 8px -2px rgba(13,21,38,.06)",
+  shadowLg: "0 24px 60px -14px rgba(13,21,38,.28)",
 };
 
 const SERVICE_COLORS = {
@@ -245,15 +245,16 @@ function GlobalStyles() {
         min-height:100vh;
         background-color:${T.bg};
         background-image:
-          radial-gradient(1100px 560px at 6% -12%, ${T.flame}17, transparent 60%),
-          radial-gradient(900px 620px at 104% -6%, ${T.teal}14, transparent 58%),
-          radial-gradient(760px 680px at 50% 116%, ${T.purple}10, transparent 62%),
-          radial-gradient(#B9C4D6 1.1px, transparent 1.1px),
-          linear-gradient(180deg, #F7F9FC 0%, #EDF0F6 100%);
-        background-repeat:no-repeat,no-repeat,no-repeat,repeat,no-repeat;
-        background-size:100% 640px,100% 640px,100% 900px,22px 22px,100% 100%;
-        background-position:top left,top right,bottom center,0 0,top;
-        background-attachment:scroll,scroll,scroll,fixed,fixed;
+          radial-gradient(1200px 620px at 4% -14%, ${T.flame}20, transparent 58%),
+          radial-gradient(1000px 680px at 106% -8%, ${T.teal}19, transparent 56%),
+          radial-gradient(820px 720px at 46% 30%, ${T.purple}0d, transparent 60%),
+          radial-gradient(900px 760px at 50% 130%, ${T.gold}12, transparent 60%),
+          radial-gradient(#C2CCDE 1.1px, transparent 1.1px),
+          linear-gradient(180deg, #F8FAFD 0%, #E8ECF4 55%, #E2E7F1 100%);
+        background-repeat:no-repeat,no-repeat,no-repeat,no-repeat,repeat,no-repeat;
+        background-size:100% 680px,100% 680px,100% 900px,100% 900px,22px 22px,100% 100%;
+        background-position:top left,top right,center,bottom center,0 0,top;
+        background-attachment:scroll,scroll,scroll,scroll,fixed,fixed;
       }
       .bc{font-family:'Barlow Condensed',sans-serif}
       .mo{font-family:'JetBrains Mono',monospace}
@@ -297,6 +298,13 @@ function GlobalStyles() {
       .menu-item:hover{background:${T.s3}!important}
     `}</style>
   );
+}
+
+function BackgroundLayer() {
+  return <div style={{
+    position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0,
+    background: "radial-gradient(140% 100% at 50% 0%, transparent 55%, rgba(13,21,38,.05) 100%)",
+  }} />;
 }
 
 /* ═══════════════════════════════════════════════════
@@ -817,7 +825,7 @@ function Tbl({ cols, rows, empty }) {
 function Stat({ label, value, sub, color, Icon }) {
   return (
     <div className="card-shadow lift-hover" style={{
-      position: "relative", background: T.s1, border: `1px solid ${T.border}`, borderRadius: 14,
+      position: "relative", background: `linear-gradient(165deg,${T.s1},${T.s2})`, border: `1px solid ${T.border}`, borderRadius: 14,
       padding: "16px 17px", overflow: "hidden",
     }}>
       <div style={{
@@ -849,14 +857,14 @@ function Stat({ label, value, sub, color, Icon }) {
 function Card({ title, children, action, pad = true, Icon, color = T.flame }) {
   return (
     <div className="card-shadow" style={{
-      background: T.s1, border: `1px solid ${T.border}`,
+      background: `linear-gradient(180deg,${T.s1},${T.s2})`, border: `1px solid ${T.border}`,
       borderRadius: 14, overflow: "hidden",
     }}>
       {title && (
         <div style={{
           padding: "13px 18px", borderBottom: `1px solid ${T.border}`,
           display: "flex", justifyContent: "space-between", alignItems: "center",
-          background: `linear-gradient(180deg,${T.s2},${T.s1})`,
+          background: `linear-gradient(180deg,${T.s2}CC,${T.s1}00)`,
         }}>
           <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
             {Icon && (
@@ -927,6 +935,7 @@ function LoginScreen({ pins, onSuccess }) {
       position: "relative", overflow: "hidden",
     }}>
       <GlobalStyles />
+      <BackgroundLayer />
       <div style={{
         position: "absolute", inset: 0, pointerEvents: "none",
         background: `radial-gradient(700px 420px at 50% -10%, ${T.flame}1c, transparent 60%)`,
@@ -1134,6 +1143,7 @@ export default function App() {
         alignItems: "center", justifyContent: "center",
       }}>
         <GlobalStyles />
+      <BackgroundLayer />
         <Loader2 size={30} color={T.flame} className="spin" />
       </div>
     );
@@ -1143,6 +1153,7 @@ export default function App() {
   return (
     <div style={{ minHeight: "100vh", color: T.text }}>
       <GlobalStyles />
+      <BackgroundLayer />
 
       {/* HEADER */}
       <header style={{
