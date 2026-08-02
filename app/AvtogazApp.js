@@ -1294,7 +1294,7 @@ export default function App() {
         {tab === "warehouse"  && <WarehouseTab  data={data} patch={patch} rate={rate} />}
         {tab === "cashier"    && <CashierTab    data={data} patch={patch} rate={rate} />}
         {tab === "ustalar"    && <UstaTab       data={data} patch={patch} rate={rate} canManage={role !== "usta"} />}
-        {tab === "warranty"   && <WarrantyTab   data={data} patch={patch} />}
+        {tab === "warranty"   && <WarrantyTab   data={data} patch={patch} rate={rate} />}
         {tab === "partners"   && <PartnersTab   data={data} patch={patch} rate={rate} />}
         {tab === "employees"  && <EmployeesTab  data={data} patch={patch} rate={rate} />}
         {tab === "analytics"  && <AnalyticsTab  data={data} patch={patch} rate={rate} />}
@@ -3612,7 +3612,7 @@ function warrantyStatus(card) {
   return { expiryISO: expiry.toISOString().slice(0, 10), active: expiry >= new Date(todayISO()) };
 }
 
-function WarrantyTab({ data, patch }) {
+function WarrantyTab({ data, patch, rate }) {
   const [claimOpen, setClaimOpen] = useState(null);
   const [manualOpen, setManualOpen] = useState(false);
 
@@ -3624,12 +3624,22 @@ function WarrantyTab({ data, patch }) {
   function addClaim(claim) {
     patch((d) => {
       const product = d.products.find((p) => p.id === claim.replacementProductId);
+      // Almashtirilib beriladigan mahsulotning haqiqiy tan narxi — mijozdan pul
+      // olinmaydi, lekin bu sklad uchun real xarajat, shuning uchun kassaga yozamiz.
+      const replacementCost = product ? num(product.costSum) * num(claim.qty) : 0;
       if (product) product.qty = Math.max(0, num(product.qty) - claim.qty);
       d.brokenItems = d.brokenItems || [];
       d.brokenItems.push({ id: uid(), date: todayISO(), name: claim.brokenProduct, qty: claim.qty, fromPlate: claim.plate, status: "Tekshirilmoqda" });
       d.warrantyClaims.unshift({ id: uid(), ...claim });
       if (claim.ustaFeeCharged > 0) {
         d.cashflow.unshift({ id: uid(), date: todayISO(), type: "kirim", category: "Xizmat to'lovi", currency: "SUM", amount: claim.ustaFeeCharged, amountSum: claim.ustaFeeCharged, amountUsd: 0, note: `Kafolat — usta haqi — ${claim.plate}` });
+      }
+      if (replacementCost > 0) {
+        d.cashflow.unshift({
+          id: uid(), date: todayISO(), type: "chiqim", category: "Kafolat xarajati",
+          currency: "SUM", amount: replacementCost, amountSum: replacementCost, amountUsd: replacementCost / rate,
+          note: `Kafolat almashtirish — ${claim.replacementName} x${claim.qty} — ${claim.plate}`,
+        });
       }
       return d;
     });
@@ -4138,6 +4148,7 @@ function EmployeesTab({ data, patch, rate }) {
       {payOpen && (
         <PayEmployeeModal
           employee={payOpen} month={monthFilter}
+          alreadyPaidSum={monthPayments.filter((p) => p.employeeId === payOpen.id).reduce((s, p) => s + num(p.amountSum), 0)}
           onClose={() => setPayOpen(null)}
           onSave={(amountSum, note) => { payEmployee(payOpen.id, amountSum, monthFilter, note); setPayOpen(null); }}
         />
@@ -4174,7 +4185,7 @@ function AddEmployeeModal({ onClose, onSave }) {
   );
 }
 
-function PayEmployeeModal({ employee, month, onClose, onSave }) {
+function PayEmployeeModal({ employee, month, alreadyPaidSum = 0, onClose, onSave }) {
   const [amount, setAmount] = useState(String(Math.round(employee.standardSalary || 0)));
   const [note, setNote] = useState("");
   const amtNum = num(amount);
@@ -4182,6 +4193,11 @@ function PayEmployeeModal({ employee, month, onClose, onSave }) {
 
   return (
     <Modal title={`Oylik to'lash — ${employee.name}`} onClose={onClose}>
+      {alreadyPaidSum > 0 && (
+        <div style={{ marginBottom: 14, padding: "10px 14px", background: T.goldD, border: `1px solid ${T.gold}40`, borderRadius: 8, fontSize: 12.5, color: T.gold, display: "flex", alignItems: "center", gap: 8 }}>
+          <AlertTriangle size={14} /> {month} uchun bu xodimga allaqachon <b className="mo">{fmtSum(alreadyPaidSum)}</b> to'langan. Davom etsangiz, bu qo'shimcha to'lov bo'ladi.
+        </div>
+      )}
       <div style={{ marginBottom: 14, padding: "10px 14px", background: T.s3, borderRadius: 8 }}>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
           <span style={{ color: T.muted }}>Lavozim</span>
