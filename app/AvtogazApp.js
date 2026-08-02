@@ -2724,7 +2724,9 @@ function StockInModal({ data, rate, onClose, onSave }) {
   const prevCost = existingProd ? num(existingProd.costSum) : 0;
   const priceRose = prevCost > 0 && unitCostSum > prevCost;
 
-  const canSave = (mode === "existing" ? !!productId : !!newName.trim()) && (sourceType === "O'z mahsuloti" || sourceType === "Insider servis" || supplier.trim());
+  const canSave = (mode === "existing" ? !!productId : !!newName.trim())
+    && (sourceType === "O'z mahsuloti" || sourceType === "Insider servis" || supplier.trim())
+    && num(qty) > 0 && unitCostSum >= 0;
 
   return (
     <Modal title="Skladga kirim" onClose={onClose} wide>
@@ -2763,7 +2765,7 @@ function StockInModal({ data, rate, onClose, onSave }) {
             <F label="Kategoriya"><Sel value={category} onChange={(e) => setCategory(e.target.value)} options={data.settings.categories || CATEGORIES_DEFAULT} /></F>
           </>
         )}
-        <F label="Miqdor"><input type="number" style={iSt} value={qty} onChange={(e) => setQty(e.target.value)} /></F>
+        <F label="Miqdor"><input type="number" min="1" style={iSt} value={qty} onChange={(e) => setQty(e.target.value)} /></F>
         <F label="Valyuta"><CurrencyToggle value={currency} onChange={setCurrency} /></F>
         <F label={`Kelish narxi (${currency})`}><input type="number" style={iSt} value={unitCost} onChange={(e) => setUnitCost(e.target.value)} /></F>
         <F label="Sotish narxi (SO'M)"><input type="number" style={iSt} value={priceSum} onChange={(e) => setPriceSum(e.target.value)} /></F>
@@ -2822,11 +2824,18 @@ function FreeSaleModal({ products, onClose, onSave }) {
   const [cart, setCart] = useState([]);
   const [productId, setProductId] = useState(products[0]?.id || "");
   const [qty, setQty] = useState(1);
+  const [stockError, setStockError] = useState("");
   const product = products.find((p) => p.id === productId);
 
   function add() {
     if (!product) return;
     const q = num(qty); if (q <= 0) return;
+    const alreadyInCart = cart.filter((i) => i.productId === product.id).reduce((s, i) => s + i.qty, 0);
+    if (alreadyInCart + q > num(product.qty)) {
+      setStockError(`Skladda faqat ${num(product.qty) - alreadyInCart} ${product.unit} qoldi`);
+      return;
+    }
+    setStockError("");
     setCart((s) => [...s, { productId: product.id, name: product.name, qty: q, lineTotalSum: q * num(product.priceSum) }]);
     setQty(1);
   }
@@ -2839,9 +2848,10 @@ function FreeSaleModal({ products, onClose, onSave }) {
         <div style={{ flex: 2 }}>
           <Sel value={productId} onChange={(e) => setProductId(e.target.value)} options={products.length ? products.map((p) => ({ value: p.id, label: `${p.name} (${p.qty})` })) : [{ value: "", label: "Sklad bo'sh" }]} />
         </div>
-        <input type="number" style={{ ...iSt, width: 70 }} value={qty} onChange={(e) => setQty(e.target.value)} />
+        <input type="number" style={{ ...iSt, width: 70 }} value={qty} onChange={(e) => { setQty(e.target.value); setStockError(""); }} />
         <Btn onClick={add}><Plus size={14} /></Btn>
       </div>
+      {stockError && <p style={{ color: T.red, fontSize: 11.5, marginTop: 6 }}>{stockError}</p>}
       {cart.map((i, idx) => (
         <div key={idx} style={{ display: "flex", justifyContent: "space-between", background: T.s3, borderRadius: 7, padding: "8px 12px", marginTop: 8 }}>
           <span style={{ fontSize: 13 }}>{i.name} x{i.qty}</span>
