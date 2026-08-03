@@ -2245,40 +2245,43 @@ function CardWorkspace({ card, products, onClose, onAddPart, onRemovePart, onAdd
         </span>
       </div>
 
-      {/* MAHSULOT */}
-      <div style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 11, padding: 15, marginBottom: 14 }}>
-        <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted2, marginBottom: 10 }}>
-          Mahsulot qo'shish — {useSalePrice ? "sotish narxida" : "tan narxida"}
-        </div>
-        <div style={{ display: "flex", gap: 8, marginBottom: parts.length ? 12 : 0, flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: 170 }}>
-            <Sel value={productId} onChange={(e) => setProductId(e.target.value)}
-              options={products.length
-                ? products.map((p) => ({ value: p.id, label: `${p.name} (${p.qty} ${p.unit})` }))
-                : [{ value: "", label: "Sklad bo'sh" }]} />
+      {/* MAHSULOT — Detailing'da yo'q: usta o'z materialidan ishlatadi, tan narxi
+          yakunlashda "Material xarajati" maydonida qo'lda kiritiladi. */}
+      {card.serviceType !== "Detailing" && (
+        <div style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 11, padding: 15, marginBottom: 14 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted2, marginBottom: 10 }}>
+            Mahsulot qo'shish — {useSalePrice ? "sotish narxida" : "tan narxida"}
           </div>
-          <input type="number" style={{ ...iSt, width: 72 }} value={qty} onChange={(e) => setQty(e.target.value)} />
-          <Btn onClick={add} size="md"><Plus size={14} /></Btn>
-        </div>
-        {parts.map((p, i) => (
-          <div key={i} style={{
-            display: "flex", justifyContent: "space-between", alignItems: "center",
-            background: T.s3, borderRadius: 8, padding: "9px 13px", marginBottom: 6,
-          }}>
-            <span style={{ fontSize: 13 }}>{p.name} × {p.qty}</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span className="mo" style={{ fontSize: 12.5, color: T.muted2 }}>{fmtSum(p.lineTotal)}</span>
-              <button onClick={() => onRemovePart(i)} style={{ background: "none", border: "none", cursor: "pointer", color: T.red }}>
-                <Trash2 size={13} />
-              </button>
+          <div style={{ display: "flex", gap: 8, marginBottom: parts.length ? 12 : 0, flexWrap: "wrap" }}>
+            <div style={{ flex: 1, minWidth: 170 }}>
+              <Sel value={productId} onChange={(e) => setProductId(e.target.value)}
+                options={products.length
+                  ? products.map((p) => ({ value: p.id, label: `${p.name} (${p.qty} ${p.unit})` }))
+                  : [{ value: "", label: "Sklad bo'sh" }]} />
             </div>
+            <input type="number" style={{ ...iSt, width: 72 }} value={qty} onChange={(e) => setQty(e.target.value)} />
+            <Btn onClick={add} size="md"><Plus size={14} /></Btn>
           </div>
-        ))}
-        <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 11, marginTop: 6, borderTop: `1px solid ${T.border}` }}>
-          <span style={{ fontSize: 12.5, color: T.muted }}>Jami mahsulot</span>
-          <span className="mo" style={{ fontSize: 13, fontWeight: 700, color: T.flame }}>{fmtSum(partsCost)}</span>
+          {parts.map((p, i) => (
+            <div key={i} style={{
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              background: T.s3, borderRadius: 8, padding: "9px 13px", marginBottom: 6,
+            }}>
+              <span style={{ fontSize: 13 }}>{p.name} × {p.qty}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span className="mo" style={{ fontSize: 12.5, color: T.muted2 }}>{fmtSum(p.lineTotal)}</span>
+                <button onClick={() => onRemovePart(i)} style={{ background: "none", border: "none", cursor: "pointer", color: T.red }}>
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </div>
+          ))}
+          <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 11, marginTop: 6, borderTop: `1px solid ${T.border}` }}>
+            <span style={{ fontSize: 12.5, color: T.muted }}>Jami mahsulot</span>
+            <span className="mo" style={{ fontSize: 13, fontWeight: 700, color: T.flame }}>{fmtSum(partsCost)}</span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* USTA HAQI */}
       <div style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 11, padding: 15, marginBottom: 16 }}>
