@@ -2881,6 +2881,7 @@ function CashierTab({ data, patch, rate }) {
   const [givePersonalOpen, setGivePersonalOpen] = useState(false);
   const [payPersonal, setPayPersonal] = useState(null);
   const [editEntry, setEditEntry] = useState(null);
+  const [cfSearch, setCfSearch] = useState("");
 
   const cf = data.cashflow;
   const clickEntries = cf.filter((c) => c.paymentType === "Karta (Click/Payme)");
@@ -2894,6 +2895,10 @@ function CashierTab({ data, patch, rate }) {
   const nasiyaTotal = nasiyaCashEntries.reduce((s, c) => s + num(c.amountSum), 0) + nasiyaRemainingTotal;
 
   const cashFlow = cf.filter((c) => c.paymentType !== "Karta (Click/Payme)" && c.paymentType !== "Nasiya (qarzga)");
+  const cfSearchNorm = cfSearch.trim().toLowerCase();
+  const cashFlowFiltered = cfSearchNorm
+    ? cashFlow.filter((c) => [c.note, c.category, c.supplier, fmtDate(c.date)].filter(Boolean).some((v) => String(v).toLowerCase().includes(cfSearchNorm)))
+    : cashFlow;
   const incomeSUM = cashFlow.filter((c) => c.type === "kirim" && c.currency !== "USD").reduce((s, c) => s + num(c.amountSum), 0);
   const expenseSUM = cashFlow.filter((c) => c.type === "chiqim" && c.currency !== "USD").reduce((s, c) => s + num(c.amountSum), 0);
   const incomeUSD = cashFlow.filter((c) => c.type === "kirim" && c.currency === "USD").reduce((s, c) => s + num(c.amount), 0);
@@ -3013,9 +3018,22 @@ function CashierTab({ data, patch, rate }) {
         <Stat label="Ta'minotchi qarzi" value={fmtSum(totalDebt)} color={T.red} Icon={AlertTriangle} />
       </div>
 
-      <Card title={`Kassa harakati (${cashFlow.length})`} Icon={Wallet} color={T.gold} pad={false}>
+      <Card
+        title={`Kassa harakati (${cashFlowFiltered.length})`}
+        Icon={Wallet} color={T.gold} pad={false}
+        action={
+          <div style={{ position: "relative", width: 240 }}>
+            <Search size={14} color={T.muted} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
+            <input
+              type="text" value={cfSearch} onChange={(e) => setCfSearch(e.target.value)}
+              placeholder="Kimga, qachon, izoh bo'yicha qidirish..."
+              style={{ ...iSt, padding: "8px 10px 8px 30px", fontSize: 12.5 }}
+            />
+          </div>
+        }
+      >
         <Tbl
-          empty="Yozuv yo'q"
+          empty={cfSearchNorm ? "Hech narsa topilmadi" : "Yozuv yo'q"}
           cols={[
             { k: "date", h: "Sana", r: (r) => fmtDate(r.date) },
             { k: "type", h: "Turi", r: (r) => <Badge color={r.type === "kirim" ? T.teal : T.red}>{r.type === "kirim" ? "Kirim" : "Chiqim"}</Badge> },
@@ -3036,7 +3054,7 @@ function CashierTab({ data, patch, rate }) {
               ),
             },
           ]}
-          rows={[...cashFlow].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 80)}
+          rows={[...cashFlowFiltered].sort((a, b) => b.date.localeCompare(a.date)).slice(0, cfSearchNorm ? 300 : 80)}
         />
       </Card>
 
