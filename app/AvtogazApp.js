@@ -49,6 +49,7 @@ const emptyData = () => ({
   },
   products: [], stockIns: [], stockOuts: [], freeSales: [], cashflow: [],
   serviceCards: [], warrantyClaims: [], partners: [], partnerTx: [],
+  suppliers: [], // {id, name, phone, pin} — nomi stockIns.supplier bilan aynan mos bo'lishi kerak
   ustaLedger: [], leads: [],
   bonusRules: [], bonusAwards: [], nasiyaDebts: [],
   employees: [], employeePayments: [],
@@ -921,13 +922,16 @@ function PageHeader({ Icon, title, sub, color = T.flame, action }) {
 /* ═══════════════════════════════════════════════════
    LOGIN SCREEN
 ═══════════════════════════════════════════════════ */
-function LoginScreen({ pins, onSuccess }) {
+function LoginScreen({ pins, suppliers = [], partners = [], onSuccess }) {
   const [digits, setDigits] = useState("");
   const [error, setError] = useState(false);
 
   function checkPin(v) {
-    const match = Object.entries(pins).find(([, p]) => p === v);
-    if (match) { setDigits(""); setError(false); onSuccess(match[0]); }
+    const staffMatch = Object.entries(pins).find(([, p]) => p === v);
+    const supplierMatch = suppliers.find((s) => s.pin && s.pin === v);
+    const partnerMatch = partners.find((p) => p.pin && p.pin === v);
+    const roleValue = staffMatch ? staffMatch[0] : supplierMatch ? `supplier:${supplierMatch.id}` : partnerMatch ? `partner:${partnerMatch.id}` : null;
+    if (roleValue) { setDigits(""); setError(false); onSuccess(roleValue); }
     else { setError(true); setTimeout(() => { setDigits(""); setError(false); }, 450); }
   }
   function press(d) {
@@ -1006,6 +1010,144 @@ function LoginScreen({ pins, onSuccess }) {
             display: "flex", alignItems: "center", justifyContent: "center",
           }}><Delete size={18} /></button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function PortalHeader({ title, sub, onLogout }) {
+  return (
+    <header style={{
+      background: `linear-gradient(180deg,${T.s1},${T.s1}F2)`, borderBottom: `1px solid ${T.border}`,
+      padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between",
+    }}>
+      <div>
+        <h1 className="bc" style={{ fontSize: 18, fontWeight: 800, letterSpacing: ".01em" }}>{title}</h1>
+        {sub && <p style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>{sub}</p>}
+      </div>
+      <button onClick={onLogout} style={{
+        display: "flex", alignItems: "center", gap: 6, background: T.s3, border: `1px solid ${T.border2}`,
+        borderRadius: 9, padding: "8px 13px", color: T.muted, fontSize: 12.5, fontWeight: 600, cursor: "pointer",
+      }}><LogOut size={13} /> Chiqish</button>
+    </header>
+  );
+}
+
+function PortalGone({ onLogout }) {
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: T.text }}>
+      <GlobalStyles /><BackgroundLayer />
+      <div className="fi" style={{ textAlign: "center" }}>
+        <p style={{ color: T.muted, marginBottom: 14 }}>Bu hisob endi mavjud emas.</p>
+        <Btn onClick={onLogout}>Chiqish</Btn>
+      </div>
+    </div>
+  );
+}
+
+function SupplierPortal({ supplier, data, onLogout }) {
+  const myStockIns = data.stockIns
+    .filter((s) => s.sourceType !== "O'z mahsuloti" && s.supplier === supplier.name)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const totalSum = myStockIns.reduce((s, r) => s + num(r.totalSum), 0);
+  const paidSum = myStockIns.reduce((s, r) => s + num(r.paidSum), 0);
+  const debtSum = totalSum - paidSum;
+
+  const myPayments = data.cashflow
+    .filter((c) => c.category === "Ta'minotchiga to'lov" && c.supplier === supplier.name)
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  return (
+    <div style={{ minHeight: "100vh", color: T.text }}>
+      <GlobalStyles /><BackgroundLayer />
+      <PortalHeader title={supplier.name} sub="Ta'minotchi kabineti — faqat ko'rish" onLogout={onLogout} />
+      <div style={{ maxWidth: 760, margin: "0 auto", padding: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 13, marginBottom: 20 }}>
+          <Stat label="Jami yetkazilgan" value={fmtSum(totalSum)} color={T.blue} Icon={Package} />
+          <Stat label="To'langan" value={fmtSum(paidSum)} color={T.teal} Icon={Wallet} />
+          <Stat label="Qarz" value={fmtSum(debtSum)} color={debtSum > 0 ? T.red : T.teal} Icon={AlertTriangle} />
+        </div>
+
+        <Card title={`Yetkazib berish tarixi (${myStockIns.length})`} Icon={Package} color={T.blue} pad={false}>
+          <Tbl
+            empty="Hali yetkazmagansiz"
+            cols={[
+              { k: "date", h: "Sana", r: (r) => fmtDate(r.date) },
+              { k: "productName", h: "Mahsulot" },
+              { k: "qty", h: "Miqdor", r: (r) => `${r.qty} ${r.unit}` },
+              { k: "totalSum", h: "Jami", r: (r) => fmtSum(r.totalSum) },
+              { k: "paidSum", h: "To'landi", r: (r) => <span style={{ color: T.teal }}>{fmtSum(r.paidSum)}</span> },
+              { k: "debt", h: "Qarz", r: (r) => { const d = num(r.totalSum) - num(r.paidSum); return <span style={{ color: d > 0 ? T.red : T.teal, fontWeight: 600 }}>{fmtSum(d)}</span>; } },
+            ]}
+            rows={myStockIns.slice(0, 100)}
+          />
+        </Card>
+
+        <div style={{ marginTop: 16 }}>
+          <Card title={`To'lov tarixi (${myPayments.length})`} Icon={Wallet} color={T.teal} pad={false}>
+            <Tbl
+              empty="To'lov yo'q"
+              cols={[
+                { k: "date", h: "Sana", r: (r) => fmtDate(r.date) },
+                { k: "amountSum", h: "Summa", r: (r) => <span style={{ color: T.teal, fontWeight: 600 }}>{fmtSum(r.amountSum)}</span> },
+                { k: "paymentType", h: "Usul", r: (r) => r.paymentType || "—" },
+              ]}
+              rows={myPayments.slice(0, 100)}
+            />
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PartnerPortal({ partner, data, onLogout }) {
+  const myTx = (data.partnerTx || [])
+    .filter((t) => t.partnerId === partner.id)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const given = myTx.filter((t) => t.type === "mahsulot").reduce((s, t) => s + num(t.amountSum), 0);
+  const paid = myTx.filter((t) => t.type === "tolov").reduce((s, t) => s + num(t.amountSum), 0);
+  const debtSum = given - paid;
+  const myBonuses = (data.bonusAwards || []).filter((a) => a.partnerId === partner.id);
+
+  return (
+    <div style={{ minHeight: "100vh", color: T.text }}>
+      <GlobalStyles /><BackgroundLayer />
+      <PortalHeader title={partner.name} sub="Hamkor kabineti — faqat ko'rish" onLogout={onLogout} />
+      <div style={{ maxWidth: 760, margin: "0 auto", padding: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 13, marginBottom: 20 }}>
+          <Stat label="Olingan" value={fmtSum(given)} color={T.purple} Icon={Handshake} />
+          <Stat label="To'langan" value={fmtSum(paid)} color={T.teal} Icon={Wallet} />
+          <Stat label="Qarz" value={fmtSum(debtSum)} color={debtSum > 0 ? T.red : T.teal} Icon={AlertTriangle} />
+        </div>
+
+        {myBonuses.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <Card title={`Bonuslar (${myBonuses.length})`} Icon={Star} color={T.gold}>
+              <div style={{ display: "grid", gap: 8 }}>
+                {myBonuses.map((a) => (
+                  <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: T.s3, borderRadius: 8, padding: "9px 13px" }}>
+                    <span style={{ fontSize: 12.5 }}>{a.productName} — <span style={{ color: T.gold, fontWeight: 600 }}>{a.bonusText}</span></span>
+                    <Badge color={a.claimed ? T.teal : T.gold}>{a.claimed ? "Olingan" : "Kutilmoqda"}</Badge>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        )}
+
+        <Card title={`Harakatlar tarixi (${myTx.length})`} Icon={Handshake} color={T.purple} pad={false}>
+          <Tbl
+            empty="Hali harakat yo'q"
+            cols={[
+              { k: "date", h: "Sana", r: (r) => fmtDate(r.date) },
+              { k: "type", h: "Turi", r: (r) => <Badge color={r.type === "mahsulot" ? T.blue : T.teal}>{r.type === "mahsulot" ? "Mahsulot olindi" : "To'lov"}</Badge> },
+              { k: "name", h: "Tafsilot", r: (r) => r.type === "mahsulot" ? `${r.name} x${r.qty}` : (r.paymentType || "—") },
+              { k: "amountSum", h: "Summa", r: (r) => <span className="mo" style={{ fontWeight: 600, color: r.type === "mahsulot" ? T.text : T.teal }}>{fmtSum(r.amountSum)}</span> },
+            ]}
+            rows={myTx.slice(0, 100)}
+          />
+        </Card>
       </div>
     </div>
   );
@@ -1157,7 +1299,20 @@ export default function App() {
       </div>
     );
 
-  if (!role) return <LoginScreen pins={data.settings.pins} onSuccess={setRole} />;
+  if (!role) return <LoginScreen pins={data.settings.pins} suppliers={data.suppliers || []} partners={data.partners || []} onSuccess={setRole} />;
+
+  if (role.startsWith("supplier:")) {
+    const supplier = (data.suppliers || []).find((s) => s.id === role.slice(9));
+    return supplier
+      ? <SupplierPortal supplier={supplier} data={data} onLogout={() => setRole(null)} />
+      : <PortalGone onLogout={() => setRole(null)} />;
+  }
+  if (role.startsWith("partner:")) {
+    const partner = (data.partners || []).find((p) => p.id === role.slice(8));
+    return partner
+      ? <PartnerPortal partner={partner} data={data} onLogout={() => setRole(null)} />
+      : <PortalGone onLogout={() => setRole(null)} />;
+  }
 
   return (
     <div style={{ minHeight: "100vh", color: T.text }}>
@@ -2936,6 +3091,16 @@ function CashierTab({ data, patch, rate }) {
   const [payPersonal, setPayPersonal] = useState(null);
   const [editEntry, setEditEntry] = useState(null);
   const [cfSearch, setCfSearch] = useState("");
+  const [addSupplierOpen, setAddSupplierOpen] = useState(false);
+  const [editSupplier, setEditSupplier] = useState(null);
+
+  function allUsedPins(excludeId) {
+    return [
+      ...Object.values(data.settings.pins || {}),
+      ...(data.suppliers || []).filter((s) => s.id !== excludeId).map((s) => s.pin),
+      ...(data.partners || []).filter((p) => p.id !== excludeId).map((p) => p.pin),
+    ].filter(Boolean);
+  }
 
   const cf = data.cashflow;
   const clickEntries = cf.filter((c) => c.paymentType === "Karta (Click/Payme)");
@@ -3129,6 +3294,22 @@ function CashierTab({ data, patch, rate }) {
       </div>
 
       <div style={{ marginTop: 16 }}>
+        <Card title={`Ta'minotchi kirish kodlari (${(data.suppliers || []).length})`} Icon={KeyRound} color={T.blue} pad={false}
+          action={<Btn size="sm" onClick={() => setAddSupplierOpen(true)}><Plus size={13} /> Qo'shish</Btn>}>
+          <Tbl
+            empty="Hali kirish kodi berilmagan"
+            cols={[
+              { k: "name", h: "Nomi" },
+              { k: "phone", h: "Telefon", r: (r) => r.phone || "—" },
+              { k: "pin", h: "PIN", r: (r) => <span className="mo" style={{ letterSpacing: "2px" }}>{r.pin}</span> },
+              { k: "act", h: "", r: (r) => <Btn size="sm" variant="ghost" onClick={() => setEditSupplier(r)}>Tahrirlash</Btn> },
+            ]}
+            rows={data.suppliers || []}
+          />
+        </Card>
+      </div>
+
+      <div style={{ marginTop: 16 }}>
         <Card title={`Nasiya qarzdorlar (${unpaidNasiya.length})`} Icon={AlertTriangle} color={T.red} pad={false}>
           <Tbl
             empty="Nasiya qarzdorlik yo'q"
@@ -3201,7 +3382,58 @@ function CashierTab({ data, patch, rate }) {
           }} />
       )}
       {reportOpen && <DailyReport data={data} onClose={() => setReportOpen(false)} />}
+      {addSupplierOpen && (
+        <SupplierPinModal debts={debts} usedPins={allUsedPins()} onClose={() => setAddSupplierOpen(false)}
+          onSave={(s) => { patch((d) => { d.suppliers = d.suppliers || []; d.suppliers.push({ id: uid(), ...s }); return d; }); setAddSupplierOpen(false); }} />
+      )}
+      {editSupplier && (
+        <SupplierPinModal item={editSupplier} debts={debts} usedPins={allUsedPins(editSupplier.id)} onClose={() => setEditSupplier(null)}
+          onSave={(s) => {
+            patch((d) => {
+              const idx = (d.suppliers || []).findIndex((x) => x.id === editSupplier.id);
+              if (idx >= 0) d.suppliers[idx] = { ...d.suppliers[idx], ...s };
+              return d;
+            });
+            setEditSupplier(null);
+          }}
+          onDelete={() => { patch((d) => { d.suppliers = (d.suppliers || []).filter((x) => x.id !== editSupplier.id); return d; }); setEditSupplier(null); }}
+        />
+      )}
     </div>
+  );
+}
+
+function SupplierPinModal({ item, debts = [], usedPins = [], onClose, onSave, onDelete }) {
+  const [name, setName] = useState(item?.name || "");
+  const [phone, setPhone] = useState(item?.phone || "");
+  const [pin, setPin] = useState(item?.pin || "");
+  const isDup = /^\d{4}$/.test(pin) && usedPins.includes(pin);
+  const canSave = name.trim() && /^\d{4}$/.test(pin) && !isDup;
+  return (
+    <Modal title={item ? "Ta'minotchi kodini tahrirlash" : "Ta'minotchiga kirish kodi berish"} onClose={onClose}>
+      <F label="Nomi (Ta'minotchi qarzlaridagi nom bilan bir xil bo'lsin)">
+        <input style={iSt} list="supplier-debt-names" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        <datalist id="supplier-debt-names">
+          {debts.map((d) => <option key={d.name} value={d.name} />)}
+        </datalist>
+      </F>
+      <div style={{ marginTop: 12 }}>
+        <F label="Telefon"><input style={iSt} value={phone} onChange={(e) => setPhone(e.target.value)} /></F>
+      </div>
+      <div style={{ marginTop: 12 }}>
+        <F label="4 xonali PIN"><input type="text" inputMode="numeric" maxLength={4} style={iSt} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))} /></F>
+      </div>
+      {isDup && <p style={{ fontSize: 12, color: T.red, marginTop: 8, fontWeight: 600 }}>Bu kod band — boshqa kod tanlang</p>}
+      <p style={{ fontSize: 11.5, color: T.muted, marginTop: 10 }}>
+        Bu kod bilan ta'minotchi login ekranidan kirib, faqat o'z yetkazmalari va qarzini ko'ra oladi.
+      </p>
+      <SaveBtn disabled={!canSave} onClick={() => onSave({ name: name.trim(), phone: phone.trim(), pin })}>Saqlash</SaveBtn>
+      {onDelete && (
+        <button onClick={onDelete} style={{ width: "100%", marginTop: 8, padding: "8px", background: "none", border: "none", color: T.red, fontSize: 12, cursor: "pointer" }}>
+          <Trash2 size={12} style={{ verticalAlign: "middle", marginRight: 4 }} /> Kirish kodini o'chirish
+        </button>
+      )}
+    </Modal>
   );
 }
 
@@ -3860,6 +4092,7 @@ function PartnersTab({ data, patch, rate }) {
   const [giveOpen, setGiveOpen] = useState(null);
   const [payOpen, setPayOpen] = useState(null);
   const [bonusRulesOpen, setBonusRulesOpen] = useState(false);
+  const [pinOpen, setPinOpen] = useState(null);
 
   const balances = partnerBalances(data);
   const totalDebt = balances.reduce((s, p) => s + Math.max(0, p.debtSum), 0);
@@ -3984,10 +4217,12 @@ function PartnersTab({ data, patch, rate }) {
             { k: "given", h: "Olingan", r: (r) => fmtSum(r.given) },
             { k: "paid", h: "To'langan", r: (r) => <span style={{ color: T.teal }}>{fmtSum(r.paid)}</span> },
             { k: "debtSum", h: "Qarz", r: (r) => <span style={{ fontWeight: 700, color: r.debtSum > 0 ? T.red : T.teal }}>{fmtSum(r.debtSum)}</span> },
+            { k: "pin", h: "PIN", r: (r) => r.pin ? <span className="mo" style={{ letterSpacing: "2px", fontSize: 12 }}>{r.pin}</span> : <span style={{ color: T.muted, fontSize: 11.5 }}>—</span> },
             { k: "act", h: "", r: (r) => (
                 <div style={{ display: "flex", gap: 6 }}>
                   <Btn size="sm" variant="ghost" onClick={() => setGiveOpen(r)}>Berish</Btn>
                   <Btn size="sm" variant="teal" onClick={() => setPayOpen(r)}>To'lov</Btn>
+                  <Btn size="sm" variant="ghost" onClick={() => setPinOpen(r)}><KeyRound size={12} /></Btn>
                 </div>
               ) },
           ]}
@@ -4018,6 +4253,24 @@ function PartnersTab({ data, patch, rate }) {
       )}
 
       {addOpen && <NewPartnerModal onClose={() => setAddOpen(false)} onSave={(p) => { addPartner(p); setAddOpen(false); }} />}
+      {pinOpen && (
+        <PartnerPinModal partner={pinOpen}
+          usedPins={[
+            ...Object.values(data.settings.pins || {}),
+            ...(data.suppliers || []).map((s) => s.pin),
+            ...(data.partners || []).filter((p) => p.id !== pinOpen.id).map((p) => p.pin),
+          ].filter(Boolean)}
+          onClose={() => setPinOpen(null)}
+          onSave={(pin) => {
+            patch((d) => {
+              const idx = d.partners.findIndex((x) => x.id === pinOpen.id);
+              if (idx >= 0) d.partners[idx] = { ...d.partners[idx], pin };
+              return d;
+            });
+            setPinOpen(null);
+          }}
+        />
+      )}
       {giveOpen && (
         <GiveProductModal
           partner={giveOpen} products={data.products} data={data}
@@ -4071,6 +4324,22 @@ function BonusRulesModal({ data, onClose, onAdd }) {
         onClick={() => { onAdd({ productId, productName: product.name, limitQty: num(limitQty), bonusText: bonusText.trim() }); onClose(); }}>
         <Star size={15} /> Qoidani saqlash
       </SaveBtn>
+    </Modal>
+  );
+}
+
+function PartnerPinModal({ partner, usedPins = [], onClose, onSave }) {
+  const [pin, setPin] = useState(partner.pin || "");
+  const isDup = /^\d{4}$/.test(pin) && usedPins.includes(pin);
+  const canSave = /^\d{4}$/.test(pin) && !isDup;
+  return (
+    <Modal title={`Kirish kodi — ${partner.name}`} onClose={onClose}>
+      <F label="4 xonali PIN"><input type="text" inputMode="numeric" maxLength={4} style={iSt} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))} autoFocus /></F>
+      {isDup && <p style={{ fontSize: 12, color: T.red, marginTop: 8, fontWeight: 600 }}>Bu kod band — boshqa kod tanlang</p>}
+      <p style={{ fontSize: 11.5, color: T.muted, marginTop: 10 }}>
+        Bu kod bilan hamkor login ekranidan kirib, faqat o'z olgan mahsulotlari va qarzini ko'ra oladi.
+      </p>
+      <SaveBtn disabled={!canSave} onClick={() => onSave(pin)}>Saqlash</SaveBtn>
     </Modal>
   );
 }
