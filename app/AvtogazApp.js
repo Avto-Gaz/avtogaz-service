@@ -2516,7 +2516,7 @@ function WarehouseTab({ data, patch, rate }) {
       let product = d.products.find((p) => p.id === entry.productId);
       const prevCost = product ? num(product.costSum) : 0;
       if (!product) {
-        product = { id: uid(), name: entry.productName, unit: entry.unit, category: entry.category, costSum: 0, priceSum: entry.priceSum || 0, priceUsd: entry.priceUsd || 0, qty: 0 };
+        product = { id: uid(), name: entry.productName, unit: entry.unit, category: entry.category, costSum: 0, priceSum: entry.priceSum || 0, priceUsd: entry.priceUsd || 0, qty: 0, convUnit: entry.convUnit, convFactor: entry.convFactor };
         d.products.push(product);
       }
       const prevQty = num(product.qty);
@@ -2525,7 +2525,7 @@ function WarehouseTab({ data, patch, rate }) {
       product.qty = newQty;
       if (entry.updatePrice) { product.priceSum = entry.priceSum; product.priceUsd = entry.priceUsd; }
 
-      d.stockIns.unshift({ id: uid(), date: entry.date, productId: product.id, productName: product.name, qty: entry.qty, unit: product.unit, currency: entry.currency, unitCostSum: entry.unitCostSum, totalSum: entry.totalSum, supplier: entry.supplier, paidSum: entry.paidSum, sourceType: entry.sourceType });
+      d.stockIns.unshift({ id: uid(), date: entry.date, productId: product.id, productName: product.name, qty: entry.qty, unit: product.unit, currency: entry.currency, unitCostSum: entry.unitCostSum, totalSum: entry.totalSum, supplier: entry.supplier, paidSum: entry.paidSum, sourceType: entry.sourceType, convQty: entry.convQty, convUnitUsed: entry.convUnitUsed });
 
       if (entry.sourceType === "Ta'minotchi" && entry.paidSum > 0) {
         d.cashflow.unshift({ id: uid(), date: entry.date, type: "chiqim", category: "Ta'minotchiga to'lov", currency: "SUM", amount: entry.paidSum, amountSum: entry.paidSum, amountUsd: entry.paidSum / rate, supplier: entry.supplier, note: `${product.name} x${entry.qty} — kirim to'lovi` });
@@ -2611,7 +2611,7 @@ function WarehouseTab({ data, patch, rate }) {
             cols={[
               { k: "date", h: "Sana", r: (r) => fmtDate(r.date) },
               { k: "productName", h: "Mahsulot" },
-              { k: "qty", h: "Miqdor" },
+              { k: "qty", h: "Miqdor", r: (r) => <span>{r.qty} {r.unit}{r.convQty ? <span style={{ color: T.muted, fontSize: 11 }}> ({r.convQty} {r.convUnitUsed})</span> : null}</span> },
               { k: "sourceType", h: "Manba", r: (r) => <Badge color={r.sourceType === "Ta'minotchi" ? T.red : r.sourceType === "Insider servis" ? T.purple : T.teal}>{r.sourceType || "Ta'minotchi"}</Badge> },
               { k: "totalSum", h: "Jami", r: (r) => <span style={{ color: T.flame, fontWeight: 600 }}>{fmtSum(r.totalSum)}</span> },
               { k: "supplier", h: "Ta'minotchi" },
@@ -2687,6 +2687,7 @@ function EditProductModal({ item, onClose, onSave }) {
   const [f, setF] = useState({ ...item });
   const [reason, setReason] = useState("");
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
+  const convUnitOptions = [{ value: "", label: "Yo'q — bir xil birlikda kiritiladi" }, ...UNITS.filter((u) => u !== f.unit).map((u) => ({ value: u, label: u }))];
   return (
     <Modal title={`Tahrirlash — ${item.name}`} onClose={onClose}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -2695,9 +2696,17 @@ function EditProductModal({ item, onClose, onSave }) {
         <F label="Sotish (so'm)"><input type="number" style={iSt} value={f.priceSum} onChange={set("priceSum")} /></F>
         <F label="Sotish (USD)"><input type="number" style={iSt} value={f.priceUsd || 0} onChange={set("priceUsd")} /></F>
         <F label="Qoldiq"><input type="number" style={iSt} value={f.qty} onChange={set("qty")} /></F>
+        <F label="Xarid birligi (ixtiyoriy)">
+          <Sel value={f.convUnit || ""} onChange={(e) => setF((s) => ({ ...s, convUnit: e.target.value || undefined }))} options={convUnitOptions} />
+        </F>
+        {f.convUnit && (
+          <F label={`1 ${f.convUnit} = necha ${f.unit}?`}>
+            <input type="number" style={iSt} value={f.convFactor || ""} onChange={(e) => setF((s) => ({ ...s, convFactor: e.target.value }))} placeholder="masalan 120" />
+          </F>
+        )}
         <F label="Sabab *" col="1/-1"><input style={iSt} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Narx oshdi, xato tuzatildi..." /></F>
       </div>
-      <SaveBtn disabled={!reason.trim()} onClick={() => onSave(f, { before: item, after: f, reason, user: "Kassir" })}>Saqlash</SaveBtn>
+      <SaveBtn disabled={!reason.trim()} onClick={() => onSave({ ...f, convFactor: f.convUnit ? num(f.convFactor) : undefined }, { before: item, after: f, reason, user: "Kassir" })}>Saqlash</SaveBtn>
     </Modal>
   );
 }
@@ -2709,6 +2718,8 @@ function StockInModal({ data, rate, onClose, onSave }) {
   const [newName, setNewName] = useState("");
   const [unit, setUnit] = useState(UNITS[0]);
   const [category, setCategory] = useState((data.settings.categories || CATEGORIES_DEFAULT)[0]);
+  const [newConvUnit, setNewConvUnit] = useState("");
+  const [newConvFactor, setNewConvFactor] = useState("");
   const [qty, setQty] = useState(1);
   const [unitCost, setUnitCost] = useState("");
   const [priceSum, setPriceSum] = useState("");
@@ -2717,19 +2728,30 @@ function StockInModal({ data, rate, onClose, onSave }) {
   const [supplier, setSupplier] = useState("");
   const [paid, setPaid] = useState(0);
   const [currency, setCurrency] = useState("SUM");
+  const [convMode, setConvMode] = useState(false);
+  const [convQty, setConvQty] = useState(1);
 
-  const unitCostSum = toSum(unitCost, currency, rate);
-  const totalSum = unitCostSum * num(qty);
+  const existingProd = data.products.find((p) => p.id === productId);
+  const activeUnit = mode === "existing" ? existingProd?.unit : unit;
+  const activeConvUnit = mode === "existing" ? existingProd?.convUnit : newConvUnit;
+  const activeConvFactor = num(mode === "existing" ? existingProd?.convFactor : newConvFactor);
+  const hasConv = !!activeConvUnit && activeConvFactor > 0;
+  const useConv = hasConv && convMode;
+
+  const effectiveQty = useConv ? num(convQty) * activeConvFactor : num(qty);
+  const effectiveUnitCost = useConv ? (num(unitCost) / activeConvFactor) : num(unitCost);
+
+  const unitCostSum = toSum(effectiveUnitCost, currency, rate);
+  const totalSum = unitCostSum * effectiveQty;
   const paidSum = toSum(paid, currency, rate);
   const debt = totalSum - paidSum;
 
-  const existingProd = data.products.find((p) => p.id === productId);
   const prevCost = existingProd ? num(existingProd.costSum) : 0;
   const priceRose = prevCost > 0 && unitCostSum > prevCost;
 
   const canSave = (mode === "existing" ? !!productId : !!newName.trim())
     && (sourceType === "O'z mahsuloti" || sourceType === "Insider servis" || supplier.trim())
-    && num(qty) > 0 && unitCostSum >= 0;
+    && effectiveQty > 0 && unitCostSum >= 0;
 
   return (
     <Modal title="Skladga kirim" onClose={onClose} wide>
@@ -2764,13 +2786,41 @@ function StockInModal({ data, rate, onClose, onSave }) {
         ) : (
           <>
             <F label="Nomi" col="1/-1"><input style={iSt} value={newName} onChange={(e) => setNewName(e.target.value)} /></F>
-            <F label="Birlik"><Sel value={unit} onChange={(e) => setUnit(e.target.value)} options={UNITS} /></F>
+            <F label="Birlik (sotish)"><Sel value={unit} onChange={(e) => { setUnit(e.target.value); setNewConvUnit(""); }} options={UNITS} /></F>
             <F label="Kategoriya"><Sel value={category} onChange={(e) => setCategory(e.target.value)} options={data.settings.categories || CATEGORIES_DEFAULT} /></F>
+            <F label="Xarid birligi (ixtiyoriy)">
+              <Sel value={newConvUnit} onChange={(e) => setNewConvUnit(e.target.value)}
+                options={[{ value: "", label: "Yo'q — bir xil birlik" }, ...UNITS.filter((u) => u !== unit).map((u) => ({ value: u, label: u }))]} />
+            </F>
+            {newConvUnit && (
+              <F label={`1 ${newConvUnit} = necha ${unit}?`}>
+                <input type="number" style={iSt} value={newConvFactor} onChange={(e) => setNewConvFactor(e.target.value)} placeholder="masalan 120" />
+              </F>
+            )}
           </>
         )}
-        <F label="Miqdor"><input type="number" min="1" style={iSt} value={qty} onChange={(e) => setQty(e.target.value)} /></F>
+        {hasConv ? (
+          <>
+            <F label="Kirim birligi">
+              <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", border: `1px solid ${T.border2}` }}>
+                <button type="button" onClick={() => setConvMode(false)} style={{ flex: 1, padding: "8px", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: !convMode ? T.flame : "transparent", color: !convMode ? "#fff" : T.muted }}>{activeUnit}</button>
+                <button type="button" onClick={() => setConvMode(true)} style={{ flex: 1, padding: "8px", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: convMode ? T.flame : "transparent", color: convMode ? "#fff" : T.muted }}>{activeConvUnit}</button>
+              </div>
+            </F>
+            <F label={convMode ? `Necha ${activeConvUnit}` : `Necha ${activeUnit}`}>
+              <input type="number" min="0" style={iSt} value={convMode ? convQty : qty} onChange={(e) => convMode ? setConvQty(e.target.value) : setQty(e.target.value)} />
+            </F>
+          </>
+        ) : (
+          <F label="Miqdor"><input type="number" min="1" style={iSt} value={qty} onChange={(e) => setQty(e.target.value)} /></F>
+        )}
         <F label="Valyuta"><CurrencyToggle value={currency} onChange={setCurrency} /></F>
-        <F label={`Kelish narxi (${currency})`}><input type="number" style={iSt} value={unitCost} onChange={(e) => setUnitCost(e.target.value)} /></F>
+        <F label={`Kelish narxi (1 ${convMode ? activeConvUnit : activeUnit}, ${currency})`}><input type="number" style={iSt} value={unitCost} onChange={(e) => setUnitCost(e.target.value)} /></F>
+        {useConv && num(convQty) > 0 && activeConvFactor > 0 && (
+          <p style={{ gridColumn: "1/-1", fontSize: 11.5, color: T.muted, margin: 0 }}>
+            ≈ {effectiveQty} {activeUnit} · 1 {activeUnit} narxi {fmtSum(unitCostSum)}
+          </p>
+        )}
         <F label="Sotish narxi (SO'M)"><input type="number" style={iSt} value={priceSum} onChange={(e) => setPriceSum(e.target.value)} /></F>
         <F label="Sotish narxi (USD)"><input type="number" style={iSt} value={priceUsd} onChange={(e) => setPriceUsd(e.target.value)} /></F>
         {sourceType !== "O'z mahsuloti" && (
@@ -2811,8 +2861,12 @@ function StockInModal({ data, rate, onClose, onSave }) {
       <SaveBtn disabled={!canSave} onClick={() => onSave({
         productId: mode === "existing" ? productId : null,
         productName: mode === "existing" ? existingProd?.name : newName.trim(),
-        unit: mode === "existing" ? existingProd?.unit : unit,
-        category, qty: num(qty), currency, unitCostSum, totalSum,
+        unit: activeUnit,
+        convUnit: mode === "existing" ? existingProd?.convUnit : (newConvUnit || undefined),
+        convFactor: mode === "existing" ? existingProd?.convFactor : (newConvUnit ? num(newConvFactor) : undefined),
+        category, qty: effectiveQty, currency, unitCostSum, totalSum,
+        convQty: useConv ? num(convQty) : undefined,
+        convUnitUsed: useConv ? activeConvUnit : undefined,
         priceSum: num(priceSum), priceUsd: num(priceUsd), updatePrice,
         supplier: supplier.trim() || (sourceType === "O'z mahsuloti" ? "—" : "Noma'lum"),
         paidSum: sourceType === "Ta'minotchi" ? paidSum : totalSum,
