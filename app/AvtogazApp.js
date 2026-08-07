@@ -1,5 +1,5 @@
 "use client";
-import { storage } from "../lib/supabase";
+import { storage, supabase } from "../lib/supabase";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import * as XLSX from "xlsx";
@@ -7,7 +7,7 @@ import {
   Package, Wallet, Plus, X, TrendingUp, TrendingDown, ChevronDown, Trash2,
   Loader2, Check, Users, Settings2, ShoppingCart, Download, Upload,
   Car, ShieldCheck, BarChart3, Handshake, RefreshCw, Wrench, Lock,
-  LogOut, Delete, KeyRound, Clock, PlayCircle, Phone, PhoneCall,
+  LogOut, LogIn, Delete, KeyRound, Clock, PlayCircle, Phone, PhoneCall,
   Search, Calendar, AlertTriangle, ArrowRight, Zap, Droplets, Star, Pencil, Save
 } from "lucide-react";
 
@@ -43,7 +43,6 @@ const NON_OPERATING_CATEGORIES = ["Rahbardan kirim", "Rahbarga chiqim", "Shaxsiy
 const emptyData = () => ({
   settings: {
     usdRate: 12650,
-    pins: { admin: "1111", kassir: "2211", usta: "3311" },
     azimKpi: 0,
     categories: [...CATEGORIES_DEFAULT],
   },
@@ -919,24 +918,9 @@ function PageHeader({ Icon, title, sub, color = T.flame, action }) {
 }
 
 /* ═══════════════════════════════════════════════════
-   LOGIN SCREEN
+   LOGIN SCREEN (Google OAuth)
 ═══════════════════════════════════════════════════ */
-function LoginScreen({ pins, onSuccess }) {
-  const [digits, setDigits] = useState("");
-  const [error, setError] = useState(false);
-
-  function checkPin(v) {
-    const match = Object.entries(pins).find(([, p]) => p === v);
-    if (match) { setDigits(""); setError(false); onSuccess(match[0]); }
-    else { setError(true); setTimeout(() => { setDigits(""); setError(false); }, 450); }
-  }
-  function press(d) {
-    if (digits.length >= 4 || error) return;
-    const next = digits + d;
-    setDigits(next);
-    if (next.length === 4) checkPin(next);
-  }
-
+function AuthShell({ children }) {
   return (
     <div style={{
       minHeight: "100vh", display: "flex",
@@ -966,48 +950,80 @@ function LoginScreen({ pins, onSuccess }) {
         <h1 className="bc" style={{ fontSize: 21, fontWeight: 800, letterSpacing: ".04em", marginBottom: 5 }}>
           AVTOGAZ SERVICE
         </h1>
-        <p style={{
-          fontSize: 12, color: T.muted, marginBottom: 26,
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-        }}>
-          <Lock size={12} /> PIN-kodni kiriting
-        </p>
-
-        <div className={error ? "pulse" : ""} style={{ display: "flex", justifyContent: "center", gap: 12, marginBottom: 26 }}>
-          {[0, 1, 2, 3].map((i) => (
-            <span key={i} style={{
-              width: 14, height: 14, borderRadius: "50%",
-              border: `2px solid ${error ? T.red : digits.length > i ? T.flame : T.border2}`,
-              background: error ? T.red : digits.length > i ? T.flame : "transparent",
-              transition: "background .12s ease, border-color .12s ease",
-            }} />
-          ))}
-        </div>
-        {error && <p style={{ fontSize: 12, color: T.red, marginBottom: 14, fontWeight: 600 }}>PIN noto'g'ri</p>}
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 11 }}>
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-            <button key={n} className="pin-key" onClick={() => press(String(n))} style={{
-              background: T.s1, border: `1px solid ${T.border2}`, borderRadius: 14,
-              color: T.text, fontSize: 19, fontWeight: 600, padding: "15px 0", cursor: "pointer",
-              boxShadow: T.shadowSm,
-            }}>{n}</button>
-          ))}
-          <div />
-          <button className="pin-key" onClick={() => press("0")} style={{
-            background: T.s1, border: `1px solid ${T.border2}`, borderRadius: 14,
-            color: T.text, fontSize: 19, fontWeight: 600, padding: "15px 0", cursor: "pointer",
-            boxShadow: T.shadowSm,
-          }}>0</button>
-          <button className="pin-key" onClick={() => !error && setDigits((s) => s.slice(0, -1))} style={{
-            background: T.s1, border: `1px solid ${T.border2}`, borderRadius: 14,
-            color: T.muted, padding: "15px 0", cursor: "pointer",
-            boxShadow: T.shadowSm,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}><Delete size={18} /></button>
-        </div>
+        {children}
       </div>
     </div>
+  );
+}
+
+function GoogleLoginScreen() {
+  const [signing, setSigning] = useState(false);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("error")) {
+      setError(true);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
+  async function handleSignIn() {
+    setSigning(true);
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+    // Muvaffaqiyatli bo'lsa brauzer Google'ga yo'naltiriladi — shu yerda qolib ketmaydi.
+    setSigning(false);
+  }
+
+  return (
+    <AuthShell>
+      <p style={{
+        fontSize: 12, color: T.muted, marginBottom: 26,
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+      }}>
+        <Lock size={12} /> Davom etish uchun kiring
+      </p>
+
+      {error && (
+        <p style={{ fontSize: 12, color: T.red, marginBottom: 16, fontWeight: 600 }}>
+          Kirishda xatolik yuz berdi. Qayta urinib ko'ring.
+        </p>
+      )}
+
+      <button onClick={handleSignIn} disabled={signing} style={{
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
+        width: "100%", background: T.s1, border: `1px solid ${T.border2}`, borderRadius: 14,
+        color: T.text, fontSize: 14, fontWeight: 600, padding: "14px 0", cursor: signing ? "default" : "pointer",
+        boxShadow: T.shadowSm, opacity: signing ? .7 : 1,
+      }}>
+        {signing ? <Loader2 size={16} className="spin" /> : <LogIn size={16} color={T.flame} />}
+        Google orqali kirish
+      </button>
+    </AuthShell>
+  );
+}
+
+function AccessDeniedScreen({ email, onSignOut }) {
+  return (
+    <AuthShell>
+      <p style={{ fontSize: 12, color: T.muted, marginBottom: 6 }}>
+        <b style={{ color: T.text }}>{email}</b>
+      </p>
+      <p style={{ fontSize: 13, color: T.red, fontWeight: 600, marginBottom: 22 }}>
+        Kirish rad etildi — bu hisob xodimlar ro'yxatida yo'q
+      </p>
+      <button onClick={onSignOut} style={{
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
+        width: "100%", background: T.s1, border: `1px solid ${T.border2}`, borderRadius: 14,
+        color: T.text, fontSize: 14, fontWeight: 600, padding: "14px 0", cursor: "pointer",
+        boxShadow: T.shadowSm,
+      }}>
+        <LogOut size={16} color={T.red} /> Chiqish
+      </button>
+    </AuthShell>
   );
 }
 
@@ -1039,13 +1055,36 @@ export default function App() {
   const [loaded, setLoaded] = useState(false);
   const [saveState, setSaveState] = useState("idle"); // idle | saving | saved | error
   const [tab, setTab] = useState("dashboard");
-  const [role, setRole] = useState(null);
+  const [session, setSession] = useState(undefined); // undefined = tekshirilmoqda, null = kirilmagan, obyekt = sessiya bor
+  const [staffRole, setStaffRole] = useState(null);
+  const [staffChecked, setStaffChecked] = useState(false);
   const [dataSource, setDataSource] = useState(null); // "server" | "local" | "empty"
   const saveTimer = useRef(null);
   const retryCount = useRef(0);
 
+  // ── AUTENTIFIKATSIYA: joriy sessiyani olish va o'zgarishlarni kuzatish ──
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession ?? null);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  // ── ROL: sessiya bor bo'lsa, email orqali staff jadvalidan rolni topamiz ──
+  useEffect(() => {
+    if (!session) { setStaffRole(null); setStaffChecked(false); return; }
+    setStaffChecked(false);
+    (async () => {
+      const { data: row } = await supabase.from("staff").select("role").eq("email", session.user.email).maybeSingle();
+      setStaffRole(row ? row.role : null);
+      setStaffChecked(true);
+    })();
+  }, [session?.user?.id]);
+
   // ── YUKLASH: server va lokal zaxirani solishtirib, eng so'nggisini olamiz ──
   useEffect(() => {
+    if (!session) return;
     (async () => {
       let serverPayload = null; // {data, savedAt}
       try {
@@ -1082,10 +1121,7 @@ export default function App() {
       if (chosen) {
         setData({
           ...emptyData(), ...chosen,
-          settings: {
-            ...emptyData().settings, ...(chosen.settings || {}),
-            pins: { ...emptyData().settings.pins, ...((chosen.settings || {}).pins || {}) },
-          },
+          settings: { ...emptyData().settings, ...(chosen.settings || {}) },
         });
         // Har ikkala joyga ham eng yangi holatni yozib qo'yamiz — sinxronlashtirish
         saveLocalBackup(chosen);
@@ -1093,7 +1129,7 @@ export default function App() {
       setDataSource(source);
       setLoaded(true);
     })();
-  }, []);
+  }, [session?.user?.id]);
 
   // ── SAQLASH: har o'zgarishda darhol lokal, keyin serverga (retry bilan) ──
   useEffect(() => {
@@ -1139,25 +1175,28 @@ export default function App() {
     { id: "employees", label: "Xodimlar",      Icon: Users,      roles: ["admin"] },
     { id: "analytics", label: "Analitika",     Icon: BarChart3,  roles: ["admin"] },
   ];
-  const tabs = allTabs.filter((t) => role && t.roles.includes(role));
+  const tabs = allTabs.filter((t) => staffRole && t.roles.includes(staffRole));
 
   useEffect(() => {
-    if (role && tabs.length && !tabs.some((t) => t.id === tab)) setTab(tabs[0].id);
-  }, [role]);
+    if (staffRole && tabs.length && !tabs.some((t) => t.id === tab)) setTab(tabs[0].id);
+  }, [staffRole]);
 
-  if (!loaded)
-    return (
-      <div style={{
-        minHeight: "100vh", display: "flex",
-        alignItems: "center", justifyContent: "center",
-      }}>
-        <GlobalStyles />
+  const spinnerScreen = (
+    <div style={{
+      minHeight: "100vh", display: "flex",
+      alignItems: "center", justifyContent: "center",
+    }}>
+      <GlobalStyles />
       <BackgroundLayer />
-        <Loader2 size={30} color={T.flame} className="spin" />
-      </div>
-    );
+      <Loader2 size={30} color={T.flame} className="spin" />
+    </div>
+  );
 
-  if (!role) return <LoginScreen pins={data.settings.pins} onSuccess={setRole} />;
+  if (session === undefined) return spinnerScreen;
+  if (!session) return <GoogleLoginScreen />;
+  if (!staffChecked) return spinnerScreen;
+  if (!staffRole) return <AccessDeniedScreen email={session.user.email} onSignOut={() => supabase.auth.signOut()} />;
+  if (!loaded) return spinnerScreen;
 
   return (
     <div style={{ minHeight: "100vh", color: T.text }}>
@@ -1189,7 +1228,7 @@ export default function App() {
               <span style={{
                 display: "inline-flex", alignItems: "center", gap: 4,
                 color: T.flame, background: T.flameD, padding: "1.5px 7px", borderRadius: 20, fontWeight: 700,
-              }}>{ROLE_LABELS[role].toUpperCase()}</span>
+              }}>{ROLE_LABELS[staffRole].toUpperCase()}</span>
               <span className="hide-sm">{fmtDate(todayISO())}</span>
             </div>
           </div>
@@ -1236,7 +1275,7 @@ export default function App() {
           <div style={{ width: 1, height: 22, background: T.border }} className="hide-sm" />
 
           <HeaderMenu
-            role={role} rate={rate} patch={patch} data={data}
+            role={staffRole} rate={rate} patch={patch} data={data}
             onImport={(p) => {
               const next = { ...emptyData(), ...p, settings: { ...emptyData().settings, ...(p.settings || {}) } };
               setData(next);
@@ -1250,7 +1289,7 @@ export default function App() {
             }}
           />
 
-          <Btn variant="ghost" size="sm" onClick={() => setRole(null)} style={{ color: T.red }}>
+          <Btn variant="ghost" size="sm" onClick={() => supabase.auth.signOut()} style={{ color: T.red }}>
             <LogOut size={13} />
           </Btn>
         </div>
@@ -1293,7 +1332,7 @@ export default function App() {
         {tab === "services"   && <ServicesTab   data={data} patch={patch} rate={rate} />}
         {tab === "warehouse"  && <WarehouseTab  data={data} patch={patch} rate={rate} />}
         {tab === "cashier"    && <CashierTab    data={data} patch={patch} rate={rate} />}
-        {tab === "ustalar"    && <UstaTab       data={data} patch={patch} rate={rate} canManage={role !== "usta"} />}
+        {tab === "ustalar"    && <UstaTab       data={data} patch={patch} rate={rate} canManage={staffRole !== "usta"} />}
         {tab === "warranty"   && <WarrantyTab   data={data} patch={patch} rate={rate} />}
         {tab === "partners"   && <PartnersTab   data={data} patch={patch} rate={rate} />}
         {tab === "employees"  && <EmployeesTab  data={data} patch={patch} rate={rate} />}
